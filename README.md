@@ -4,7 +4,7 @@
 
 [![Quality Assurance](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml)
 
-RunIf is a utility for running commands on macOS system events.
+RunIf is a utility for running commands on macOS system events. 
 
 ## Configuration
 
@@ -33,7 +33,7 @@ If you want to run a command on an event, regardless of the input (`with`), then
   run: lunar set 60
 ```
 
-## Event providers
+## Event sources
 
 The following event sources can be subscribed to:
 
