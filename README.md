@@ -2,6 +2,8 @@
     <img src="./assets/logo.svg" alt="Run if" />
 </p>
 
+[![Quality Assurance](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml)
+
 RunIf is a utility for running commands on macOS system events.
 
 ## Configuration
