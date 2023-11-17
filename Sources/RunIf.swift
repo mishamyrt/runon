@@ -1,12 +1,13 @@
 import ArgumentParser
-import Foundation
 import Cocoa
+import Foundation
 
 struct Options: ParsableArguments {
     @Option(
         name: [.customLong("config"), .customShort("c")],
-        help: "Configuration file path.")
-    var configPath: String? = nil
+        help: "Configuration file path."
+    )
+    var configPath: String?
 }
 
 @main
@@ -26,16 +27,17 @@ extension RunIf {
         static var configuration =
             CommandConfiguration(abstract: "Run observer in connected mode.")
 
-        @OptionGroup var options: Options
+        @OptionGroup
+        var options: Options
 
         mutating func run() throws {
             let config = ConfigLoader.read(handlersOf: options.configPath)
-            if (config == nil) {
+            if config == nil {
                 throw configError
             }
             let runner = CommandRunner(with: config!)
             let observer = EventObserver(sources: [
-                ScreenSource(),
+                ScreenSource()
             ])
             observer.listener = runner
             observer.runLoop()

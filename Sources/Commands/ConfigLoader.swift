@@ -1,18 +1,18 @@
 import Foundation
 import Yams
 
-class ConfigLoader {
+enum ConfigLoader {
     static var defaultPath: URL {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         return homeDir
             .appendingPathComponent(".config")
             .appendingPathComponent("runif")
             .appendingPathComponent("config")
-            .appendingPathExtension("yaml")  
+            .appendingPathExtension("yaml")
     }
 
     static func read(contentsOf: URL) -> String? {
-        var value = ""    
+        var value = ""
         do {
             value = try String(contentsOf: contentsOf)
         } catch {
@@ -21,10 +21,10 @@ class ConfigLoader {
         return value
     }
 
-    static func read(handlersOf: String?) -> [String: Array<Handler>]? {
-       let contents = self.read(
+    static func read(handlersOf: String?) -> [String: [Handler]]? {
+        let contents = read(
             contentsOf: handlersOf == nil
-                ? self.defaultPath
+                ? defaultPath
                 : URL(filePath: handlersOf!)
         )
         if contents == nil {
@@ -34,21 +34,20 @@ class ConfigLoader {
         if items == nil {
             return nil
         }
-        return parseHandlers(of: items!)
+        return parseHandlers(from: items!)
     }
 
     static func load(yaml: String) -> [[AnyHashable: String]]? {
         do {
-            let handlers = try Yams.load(yaml: yaml) as? [[AnyHashable: String]]
-            return handlers
+            return try Yams.load(yaml: yaml) as? [[AnyHashable: String]]
         } catch {
             return nil
         }
     }
 
-    static func parseHandlers(of: [[AnyHashable: String]]) -> [String: Array<Handler>]? {
-        var config: [String: Array<Handler>] = [:]
-        for handler in of {
+    static func parseHandlers(from: [[AnyHashable: String]]) -> [String: [Handler]]? {
+        var config: [String: [Handler]] = [:]
+        for handler in from {
             let condition = handler["if"]
             let command = handler["run"]
             let target = handler["with"]

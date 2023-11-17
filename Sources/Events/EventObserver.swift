@@ -3,9 +3,9 @@ import Cocoa
 class EventObserver: EventListener, EventProvider {
     var listener: EventListener?
 
-    var sources: Array<EventSource> = []
+    var sources: [EventSource] = []
 
-    init(sources: Array<EventSource>) {
+    init(sources: [EventSource]) {
         for var provider in sources {
             provider.listener = self
         }
@@ -14,8 +14,8 @@ class EventObserver: EventListener, EventProvider {
 
     func handleEvent(with: Event) {
         print(with)
-        if (self.listener != nil) {
-            self.listener!.handleEvent(with: with)
+        if listener != nil {
+            listener!.handleEvent(with: with)
         }
     }
 
@@ -31,7 +31,7 @@ class EventObserver: EventListener, EventProvider {
     }
 
     func run() {
-        for provider in self.sources {
+        for provider in sources {
             provider.handle()
         }
     }

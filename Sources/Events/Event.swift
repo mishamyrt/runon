@@ -14,6 +14,7 @@ protocol EventProvider {
 
 protocol EventSource: EventProvider {
     var name: String { get }
+
     func handle()
 }
 
@@ -23,11 +24,11 @@ extension EventSource {
     }
 
     func emit(kind: String, target: String) {
-        if self.listener == nil {
+        if listener == nil {
             return
         }
-        self.listener!.handleEvent(with: Event(
-            source: self.name,
+        listener!.handleEvent(with: Event(
+            source: name,
             kind: kind,
             target: target
         ))
