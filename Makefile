@@ -7,4 +7,4 @@ build:
 
 .PHONY: lint
 lint:
-	swiftlint .
+	swiftlint lint --config .swiftlint.yaml .
