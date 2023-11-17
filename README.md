@@ -2,7 +2,7 @@
     <img src="./assets/logo.svg" alt="Run if" />
 </p>
 
-RunIf is a utility this to run shell commands on macOS system events.
+RunIf is a utility for running commands on macOS system events.
 
 ## Configuration
 
