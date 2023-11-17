@@ -10,7 +10,7 @@ RunIf is a utility for running commands on macOS system events.
 
 The configuration is described in the format:
 
-> If the `SOURCE` has declared an `EVENT` [with `DATA`], then execute the `COMMAND`.
+> If the `SOURCE` has emitted an `EVENT` [with `DATA`], then execute the `COMMAND`.
 
 Example:
 
