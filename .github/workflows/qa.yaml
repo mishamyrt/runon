@@ -1,0 +1,22 @@
+name: Quality Assurance
+
+on:
+  - push
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v3
+    - uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "5.9"
+    - name: Install swiftlint
+      run: brew install swiftlint
+    - name: Setup dependencies
+      run: swift package resolve
+    - name: Check build
+      run: make build
+    - name: Check code style
+      run: make lint
+   
