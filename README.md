@@ -25,6 +25,14 @@ Example:
   run: myrt_desk off
 ```
 
+If you want to run a command on an event, regardless of the input (`with`), then use the simplified notation:
+
+```yaml
+# If any monitor is disconnected, set brightness to 60%
+- if: screen:disconnected
+  run: lunar set 60
+```
+
 ## Event providers
 
 The following event sources can be subscribed to:
