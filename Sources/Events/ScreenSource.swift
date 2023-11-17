@@ -1,7 +1,7 @@
 import Cocoa
 import CoreGraphics
 
-class ScreenProvider: SourceEventProvider {
+class ScreenSource: EventSource {
     var name = "screen"
     var listener: EventListener?
     var lastScreens: Array<String>?

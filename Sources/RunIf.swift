@@ -24,7 +24,7 @@ struct RunIf: ParsableCommand {
 extension RunIf {
     struct Run: ParsableCommand {
         static var configuration =
-            CommandConfiguration(abstract: "Print the sum of the values.")
+            CommandConfiguration(abstract: "Run observer in connected mode.")
 
         @OptionGroup var options: Options
 
@@ -34,8 +34,8 @@ extension RunIf {
                 throw configError
             }
             let runner = CommandRunner(with: config!)
-            let observer = EventObserver(providers: [
-                ScreenProvider(),
+            let observer = EventObserver(sources: [
+                ScreenSource(),
             ])
             observer.listener = runner
             observer.runLoop()

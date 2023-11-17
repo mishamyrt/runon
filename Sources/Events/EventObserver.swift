@@ -3,13 +3,13 @@ import Cocoa
 class EventObserver: EventListener, EventProvider {
     var listener: EventListener?
 
-    var providers: Array<SourceEventProvider> = []
+    var sources: Array<EventSource> = []
 
-    init(providers: Array<SourceEventProvider>) {
-        for var provider in providers {
+    init(sources: Array<EventSource>) {
+        for var provider in sources {
             provider.listener = self
         }
-        self.providers = providers
+        self.sources = sources
     }
 
     func handleEvent(with: Event) {
@@ -31,7 +31,7 @@ class EventObserver: EventListener, EventProvider {
     }
 
     func run() {
-        for provider in self.providers {
+        for provider in self.sources {
             provider.handle()
         }
     }
