@@ -4,7 +4,7 @@
 
 [![Quality Assurance](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml)
 
-RunIf is a utility for running commands on macOS system events. 
+RunIf is a utility for running commands on macOS system events.
 
 ## Configuration
 
@@ -37,5 +37,15 @@ If you want to run a command on an event, regardless of the input (`with`), then
 
 The following event sources can be subscribed to:
 
-* `screen` — connected displays list change. declares `connected` and `disconnected` events. In `with` takes the display name.
-* `audio`  — connected audio device list change. declares `connected` and `disconnected` events. In `with` takes the audio device name. Handles both input and output devices.
+- `screen` — connected displays list change. declares `connected` and `disconnected` events. In `with` takes the display name.
+- `audio`  — connected audio device list change. declares `connected` and `disconnected` events. In `with` takes the audio device name. Handles both input and output devices.
+
+## Usage
+
+The application is controlled through commands:
+
+- `start` — starts the application in the background.
+- `stop` — stops the background application.
+- `restart` — restarts background application.
+- `run` — runs the application in the current process without daemonization.
+- `autostart` — controls the automatic start-up of the application.

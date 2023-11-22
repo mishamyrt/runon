@@ -39,6 +39,16 @@ restart() {
 }
 
 case "$1" in
+    run)
+        $APP_PATH run
+        ;;
+    autostart)
+        if [ -z "$2" ]; then
+            $APP_PATH autostart
+        else
+            $APP_PATH autostart "$2"
+        fi
+        ;;
     start)
         start
         ;;
@@ -49,5 +59,5 @@ case "$1" in
         restart
         ;;
     *)
-        echo "Usage: runif start|stop|restart"
+        echo "Usage: runif run|start|stop|restart|autostart"
 esac
