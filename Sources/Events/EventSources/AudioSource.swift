@@ -2,8 +2,8 @@ import Cocoa
 import SimplyCoreAudio
 
 class AudioSource: EventSource {
-    let coreAudio = SimplyCoreAudio()
     var name = "audio"
+    let coreAudio = SimplyCoreAudio()
     var listener: EventListener?
     var lastScreens: [String]?
     var updating = false

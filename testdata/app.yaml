@@ -1,0 +1,3 @@
+- if: app:activated
+  with: com.google.Chrome
+  run: ls -la

@@ -14,7 +14,8 @@ extension RunIf {
         mutating func run() throws {
             let sources: [EventSource] = [
                 ScreenSource(),
-                AudioSource()
+                AudioSource(),
+                ApplicationSource()
             ]
             let config = ConfigLoader.read(handlersOf: configPath)
             if config == nil {
