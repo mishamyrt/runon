@@ -37,6 +37,5 @@ If you want to run a command on an event, regardless of the input (`with`), then
 
 The following event sources can be subscribed to:
 
-* `screen` — change connected displays. declares `connected` and `disconnected` events. In `with` takes the display name.
-
-
+* `screen` — connected displays list change. declares `connected` and `disconnected` events. In `with` takes the display name.
+* `audio`  — connected audio device list change. declares `connected` and `disconnected` events. In `with` takes the audio device name. Handles both input and output devices.

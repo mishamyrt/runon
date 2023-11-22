@@ -15,14 +15,10 @@ protocol EventProvider {
 protocol EventSource: EventProvider {
     var name: String { get }
 
-    func handle()
+    func subscribe()
 }
 
 extension EventSource {
-    func handle() {
-        // Do nothing by default
-    }
-
     func emit(kind: String, target: String) {
         if listener == nil {
             return

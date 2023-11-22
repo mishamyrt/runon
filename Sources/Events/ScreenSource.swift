@@ -7,23 +7,19 @@ class ScreenSource: EventSource {
     var lastScreens: [String]?
     var updating = false
 
-    init() {
-        subscribeChange()
-        refreshScreens()
-    }
-
     @objc
     func handleDisplayConnection(notification _: Notification) {
         refreshScreens()
     }
 
-    func subscribeChange() {
+    func subscribe() {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleDisplayConnection),
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+        refreshScreens()
     }
 
     func getScreenNames() -> [String] {

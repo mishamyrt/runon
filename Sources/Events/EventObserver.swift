@@ -6,8 +6,8 @@ class EventObserver: EventListener, EventProvider {
     var sources: [EventSource] = []
 
     init(sources: [EventSource]) {
-        for var provider in sources {
-            provider.listener = self
+        for var source in sources {
+            source.listener = self
         }
         self.sources = sources
     }
@@ -19,20 +19,19 @@ class EventObserver: EventListener, EventProvider {
         }
     }
 
+    func subscribeSources() {
+        for source in sources {
+            source.subscribe()
+        }
+    }
+
     func runLoop() {
+        subscribeSources()
         _ = NSApplication.shared
         let ticket = Timer.publish(every: 5, on: .main, in: .common)
             .autoconnect()
-            .sink { _ in
-                self.run()
-            }
+            .sink { _ in }
         RunLoop.main.run()
         ticket.cancel()
-    }
-
-    func run() {
-        for provider in sources {
-            provider.handle()
-        }
     }
 }

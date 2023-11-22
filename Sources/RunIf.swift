@@ -15,17 +15,21 @@ struct RunIf: ParsableCommand {
     var configPath: String?
 
     mutating func run() throws {
+        let sources: [EventSource] = [
+            ScreenSource(),
+            AudioSource()
+        ]
         let config = ConfigLoader.read(handlersOf: configPath)
         if config == nil {
             throw ValidationError("Can't open config file.")
         }
+        let activeSources = sources.filter { source in
+            config!.keys.contains(source.name)
+        }
         let runner = CommandRunner(with: config!)
-        let sources: [EventSource] = [
-            ScreenSource()
-        ]
-        let observer = EventObserver(sources: sources)
+        let observer = EventObserver(sources: activeSources)
         observer.listener = runner
-        print("starting with \(sources.count) event sources")
+        print("starting with \(activeSources.count) event sources")
         observer.runLoop()
     }
 }
