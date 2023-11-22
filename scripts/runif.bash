@@ -1,25 +1,35 @@
 #!/bin/bash
+# objc_initializeAfterForkError
 
 APP_PATH="/usr/local/bin/runif-daemon"
 PID_FILE="/tmp/runif.pid"
 
-start() {
+isRunning() {
     if [ -f $PID_FILE ]; then
-        echo "The service is already running."
+        kill -0 "$(cat $PID_FILE)" &> /dev/null
+    else
+        false
+    fi
+}
+
+start() {
+    if isRunning; then
+        echo "runif daemon is already running"
     else
         nohup $APP_PATH &> /dev/null &
+        rm -f "$PID_FILE"
         echo $! > $PID_FILE
-        echo "Service started."
+        echo "runif daemon started"
     fi
 }
 
 stop() {
-    if [ -f $PID_FILE ]; then
+    if isRunning; then
         kill "$(cat $PID_FILE)"
         rm $PID_FILE
-        echo "Service stopped."
+        echo "runif daemon stopped"
     else
-        echo "The service is not running."
+        echo "runif daemon is not running"
     fi
 }
 
@@ -39,5 +49,5 @@ case "$1" in
         restart
         ;;
     *)
-        echo "Usage: $0 {start|stop|restart}"
+        echo "Usage: runif start|stop|restart"
 esac
