@@ -12,4 +12,7 @@ lint:
 	swiftlint lint --config .swiftlint.yaml .
 
 install:
+	rm -f \
+		/usr/local/bin/runif \
+		/usr/local/bin/runif-daemon
 	cp dist/* /usr/local/bin/
