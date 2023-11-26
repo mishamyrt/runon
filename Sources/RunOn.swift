@@ -2,7 +2,7 @@ import ArgumentParser
 import ServiceManagement
 
 @main
-struct RunIf: ParsableCommand {
+struct RunOn: ParsableCommand {
     static let sources: [EventSource] = [
         ScreenSource(),
         AudioSource(),

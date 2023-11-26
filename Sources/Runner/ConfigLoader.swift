@@ -48,7 +48,7 @@ enum ConfigLoader {
     static func parseHandlers(from: [[AnyHashable: String]]) -> [String: [Handler]]? {
         var config: [String: [Handler]] = [:]
         for handler in from {
-            let condition = handler["if"]
+            let condition = handler["on"]
             let command = handler["run"]
             let target = handler["with"]
             if condition == nil || command == nil {

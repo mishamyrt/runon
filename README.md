@@ -2,25 +2,25 @@
     <img src="./assets/logo.svg" alt="Run if" />
 </p>
 
-[![Quality Assurance](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runif/actions/workflows/qa.yaml)
+[![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
 
-RunIf is a utility for running commands on macOS system events.
+RunOn is a utility for running commands on macOS system events.
 
 ## Configuration
 
 The configuration is described in the format:
 
-> If the `SOURCE` has emitted an `EVENT` [with `DATA`], then execute the `COMMAND`.
+> On the `SOURCE` has emitted an `EVENT` [with `DATA`], execute the `COMMAND`.
 
 Example:
 
 ```yaml
 # If my work monitor is connected, turn on the desk backlight
-- if: screen:connected
+- on: screen:connected
   with: Mi 27 NU
   run: myrt_desk on
 # If the monitor is disconnected, turn off the desk backlight
-- if: screen:disconnected
+- on: screen:disconnected
   with: Mi 27 NU
   run: myrt_desk off
 ```
@@ -29,7 +29,7 @@ If you want to run a command on an event, regardless of the input (`with`), then
 
 ```yaml
 # If any monitor is disconnected, set brightness to 60%
-- if: screen:disconnected
+- on: screen:disconnected
   run: lunar set 60
 ```
 

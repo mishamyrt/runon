@@ -1,6 +1,6 @@
 import ArgumentParser
 
-extension RunIf {
+extension RunOn {
     struct Print: ParsableCommand {
         static var configuration =
             CommandConfiguration(

@@ -1,6 +1,6 @@
 import ArgumentParser
 
-extension RunIf {
+extension RunOn {
     struct Run: ParsableCommand {
         static var configuration =
             CommandConfiguration(abstract: "Start event observer.")

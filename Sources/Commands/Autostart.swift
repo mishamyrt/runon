@@ -1,7 +1,7 @@
 import ArgumentParser
 import Foundation
 
-extension RunIf {
+extension RunOn {
     struct Autostart: ParsableCommand {
         static var configuration =
             CommandConfiguration(
@@ -25,7 +25,7 @@ extension RunIf {
     }
 }
 
-extension RunIf.Autostart {
+extension RunOn.Autostart {
     struct Enable: ParsableCommand {
         static var configuration =
             CommandConfiguration(abstract: "Enable autostart.")
@@ -34,7 +34,7 @@ extension RunIf.Autostart {
             if !LoginItem.exists {
                 LoginItem.create()
             }
-            RunIf.printAutostartStatus(enabled: true)
+            RunOn.printAutostartStatus(enabled: true)
         }
     }
 
@@ -46,7 +46,7 @@ extension RunIf.Autostart {
             if LoginItem.exists {
                 try LoginItem.remove()
             }
-            RunIf.printAutostartStatus(enabled: false)
+            RunOn.printAutostartStatus(enabled: false)
         }
     }
 }
