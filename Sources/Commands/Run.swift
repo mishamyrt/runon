@@ -12,11 +12,6 @@ extension RunIf {
         var configPath: String?
 
         mutating func run() throws {
-            let sources: [EventSource] = [
-                ScreenSource(),
-                AudioSource(),
-                ApplicationSource()
-            ]
             let config = ConfigLoader.read(handlersOf: configPath)
             if config == nil {
                 throw ValidationError("Can't open config file.")

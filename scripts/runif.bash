@@ -58,6 +58,9 @@ case "$1" in
     restart)
         restart
         ;;
+    print)
+        $APP_PATH print
+        ;;
     *)
-        echo "Usage: runif run|start|stop|restart|autostart"
+        echo "Usage: runif run|start|stop|restart|autostart|print"
 esac
