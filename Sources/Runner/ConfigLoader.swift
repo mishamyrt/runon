@@ -22,48 +22,48 @@ enum ConfigLoader {
     }
 
     static func read(handlersOf: String?) -> [String: [Handler]]? {
-        let contents = read(
-            contentsOf: handlersOf == nil
-                ? defaultPath
-                : URL(filePath: handlersOf!)
-        )
-        if contents == nil {
+        let contentOfUrl: URL
+        if let handlersOf {
+            contentOfUrl = URL(filePath: handlersOf)
+        } else {
+            contentOfUrl = defaultPath
+        }
+
+        guard
+            let contents = read(contentsOf: contentOfUrl),
+            let items = load(yaml: contents) else {
             return nil
         }
-        let items = load(yaml: contents!)
-        if items == nil {
-            return nil
-        }
-        return parseHandlers(from: items!)
+        return parseHandlers(from: items)
     }
 
     static func load(yaml: String) -> [[AnyHashable: String]]? {
-        do {
-            return try Yams.load(yaml: yaml) as? [[AnyHashable: String]]
-        } catch {
-            return nil
-        }
+        try? Yams.load(yaml: yaml) as? [[AnyHashable: String]]
     }
 
     static func parseHandlers(from: [[AnyHashable: String]]) -> [String: [Handler]]? {
         var config: [String: [Handler]] = [:]
         for handler in from {
-            let condition = handler["on"]
-            let command = handler["run"]
-            let target = handler["with"]
-            if condition == nil || command == nil {
-                return nil
-            }
-            let conditionParts = condition!.components(separatedBy: ":")
+            guard
+                let condition = handler["on"],
+                let command = handler["run"],
+                let target = handler["with"] else {
+                    return nil
+                }
+            let conditionParts = condition.components(separatedBy: ":")
             if conditionParts.count != 2 {
                 return nil
             }
-            let provider = conditionParts[0]
-            let event = conditionParts[1]
+            guard
+                let provider = conditionParts[safe: 0],
+                let event = conditionParts[safe: 1] else {
+                    return nil
+                }
+
             let handler = Handler(
                 kind: event,
                 target: target,
-                command: command!
+                command: command
             )
 
             if config[provider] == nil {

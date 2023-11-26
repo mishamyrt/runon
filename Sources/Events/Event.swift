@@ -20,10 +20,10 @@ protocol EventSource: EventProvider {
 
 extension EventSource {
     func emit(kind: String, target: String) {
-        if listener == nil {
+        guard let listener else {
             return
         }
-        listener!.handleEvent(with: Event(
+        listener.handleEvent(with: Event(
             source: name,
             kind: kind,
             target: target

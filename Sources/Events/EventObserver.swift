@@ -14,9 +14,10 @@ class EventObserver: EventListener, EventProvider {
 
     func handleEvent(with: Event) {
         print(with)
-        if listener != nil {
-            listener!.handleEvent(with: with)
+        guard let listener else {
+            return
         }
+        listener.handleEvent(with: with)
     }
 
     func subscribeSources() {

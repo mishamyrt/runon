@@ -2,6 +2,7 @@ import Cocoa
 import CoreGraphics
 
 class ScreenSource: EventSource {
+    let semaphore = DispatchSemaphore(value: 1)
     var name = "screen"
     var listener: EventListener?
     var lastScreens: [String]?
@@ -23,31 +24,25 @@ class ScreenSource: EventSource {
     }
 
     func getScreenNames() -> [String] {
-        var names: [String] = []
-        for screen in NSScreen.screens {
-            names.append(screen.localizedName)
+        NSScreen.screens.map { screen in
+            screen.localizedName
         }
-        return names
     }
 
     func refreshScreens() {
-        if updating {
-            return
-        }
-        updating = true
+        semaphore.wait()
         let screens = getScreenNames()
-        if lastScreens == nil {
-            lastScreens = screens
-            updating = false
+        guard var lastScreens else {
+            semaphore.signal()
             return
         }
-        for screen in screens where !lastScreens!.contains(where: { $0 == screen }) {
+        for screen in screens where !lastScreens.contains(where: { $0 == screen }) {
             emit(kind: "connected", target: screen)
         }
-        for screen in lastScreens! where !screens.contains(where: { $0 == screen }) {
+        for screen in lastScreens where !screens.contains(where: { $0 == screen }) {
             emit(kind: "disconnected", target: screen)
         }
         lastScreens = screens
-        updating = false
+        semaphore.signal()
     }
 }

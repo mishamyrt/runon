@@ -8,18 +8,21 @@ class CommandRunner: EventListener {
     }
 
     func handleEvent(with: Event) {
-        if handlers[with.source] == nil {
+        guard let handlersWithSource = handlers[with.source] else {
             return
         }
-        for handler in handlers[with.source]! {
+        for handler in handlersWithSource {
             if handler.kind == with.kind, handler.target == nil || handler.target == with.target {
                 do {
                     print("Running", handler.command)
                     try shellOut(to: handler.command)
                 } catch {
-                    let error = error as! ShellOutError
-                    print(error.message) // Prints STDERR
-                    print(error.output) // Prints STDOUT
+                    if let error = error as? ShellOutError {
+                        print(error.message)
+                        print(error.output)
+                    } else {
+                        debugPrint(String(describing: error))
+                    }
                 }
             }
         }

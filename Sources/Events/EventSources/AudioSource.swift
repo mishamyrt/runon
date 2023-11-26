@@ -18,14 +18,14 @@ class AudioSource: EventSource {
 
     @objc
     func handleDeviceListChanged(notification: Notification) {
-        let addedDevices = notification.userInfo?["addedDevices"] as? [AudioDevice]
-        if addedDevices != nil && !addedDevices!.isEmpty {
-            emitAll(kind: "connected", devices: addedDevices!)
+        if let addedDevices =
+            notification.userInfo?["addedDevices"] as? [AudioDevice], !addedDevices.isEmpty {
+            emitAll(kind: "connected", devices: addedDevices)
         }
 
-        let removedDevices = notification.userInfo?["removedDevices"] as? [AudioDevice]
-        if removedDevices != nil && !removedDevices!.isEmpty {
-            emitAll(kind: "disconnected", devices: removedDevices!)
+        if let removedDevices =
+            notification.userInfo?["removedDevices"] as? [AudioDevice], !removedDevices.isEmpty {
+            emitAll(kind: "disconnected", devices: removedDevices)
         }
     }
 

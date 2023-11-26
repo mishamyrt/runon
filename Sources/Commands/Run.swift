@@ -12,14 +12,13 @@ extension RunOn {
         var configPath: String?
 
         mutating func run() throws {
-            let config = ConfigLoader.read(handlersOf: configPath)
-            if config == nil {
+            guard let config = ConfigLoader.read(handlersOf: configPath) else {
                 throw ValidationError("Can't open config file.")
             }
             let activeSources = sources.filter { source in
-                config!.keys.contains(source.name)
+                config.keys.contains(source.name)
             }
-            let runner = CommandRunner(with: config!)
+            let runner = CommandRunner(with: config)
             let observer = EventObserver(sources: activeSources)
             observer.listener = runner
             print("starting with \(activeSources.count) event sources")

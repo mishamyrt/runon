@@ -7,18 +7,18 @@ class ApplicationSource: EventSource {
 
     @objc
     func handleAppActivate(notification: Notification) {
-        let bundleId = bundleIdentifier(from: notification)
-        if bundleId != nil {
-            emit(kind: "activated", target: bundleId!)
+        guard let bundleId = bundleIdentifier(from: notification) else {
+            return
         }
+        emit(kind: "activated", target: bundleId)
     }
 
     @objc
     func handleAppDeactivate(notification: Notification) {
-        let bundleId = bundleIdentifier(from: notification)
-        if bundleId != nil {
-            emit(kind: "deactivated", target: bundleId!)
+        guard let bundleId = bundleIdentifier(from: notification) else {
+            return
         }
+        emit(kind: "deactivated", target: bundleId)
     }
 
     func subscribe() {
