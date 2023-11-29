@@ -6,7 +6,7 @@ enum ConfigLoader {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         return homeDir
             .appendingPathComponent(".config")
-            .appendingPathComponent("runif")
+            .appendingPathComponent("runon")
             .appendingPathComponent("config")
             .appendingPathExtension("yaml")
     }

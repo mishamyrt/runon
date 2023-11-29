@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "RunIf",
+    name: "RunOn",
     platforms: [
         .macOS(.v14)
     ],
@@ -16,7 +16,7 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "runif",
+            name: "runon",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "ShellOut", package: "ShellOut"),

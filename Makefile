@@ -3,9 +3,9 @@ build:
 	swift build
 	rm -rf ./dist
 	mkdir ./dist
-	cp .build/debug/runif ./dist/runif-daemon
-	cp scripts/runif.bash ./dist/runif
-	chmod +x ./dist/runif
+	cp .build/debug/runon ./dist/runon-daemon
+	cp scripts/runon.bash ./dist/runon
+	chmod +x ./dist/runon
 
 .PHONY: lint
 lint:
@@ -13,6 +13,6 @@ lint:
 
 install:
 	rm -f \
-		/usr/local/bin/runif \
-		/usr/local/bin/runif-daemon
+		/usr/local/bin/runon \
+		/usr/local/bin/runon-daemon
 	cp dist/* /usr/local/bin/

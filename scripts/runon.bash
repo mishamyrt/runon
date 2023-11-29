@@ -1,8 +1,8 @@
 #!/bin/bash
 # objc_initializeAfterForkError
 
-APP_PATH="/usr/local/bin/runif-daemon"
-PID_FILE="/tmp/runif.pid"
+APP_PATH="/usr/local/bin/runon-daemon"
+PID_FILE="/tmp/runon.pid"
 
 isRunning() {
     if [ -f $PID_FILE ]; then
@@ -14,12 +14,12 @@ isRunning() {
 
 start() {
     if isRunning; then
-        echo "runif daemon is already running"
+        echo "runon daemon is already running"
     else
         nohup $APP_PATH &> /dev/null &
         rm -f "$PID_FILE"
         echo $! > $PID_FILE
-        echo "runif daemon started"
+        echo "runon daemon started"
     fi
 }
 
@@ -27,9 +27,9 @@ stop() {
     if isRunning; then
         kill "$(cat $PID_FILE)"
         rm $PID_FILE
-        echo "runif daemon stopped"
+        echo "runon daemon stopped"
     else
-        echo "runif daemon is not running"
+        echo "runon daemon is not running"
     fi
 }
 
@@ -62,5 +62,5 @@ case "$1" in
         $APP_PATH print
         ;;
     *)
-        echo "Usage: runif run|start|stop|restart|autostart|print"
+        echo "Usage: runon run|start|stop|restart|autostart|print"
 esac

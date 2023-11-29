@@ -10,7 +10,7 @@ struct RunOn: ParsableCommand {
     ]
 
     static var configuration = CommandConfiguration(
-        commandName: "runif-daemon",
+        commandName: "runon-daemon",
         abstract: "A utility for automating actions on system events.",
         version: "1.0.0",
         subcommands: [Run.self, Autostart.self, Print.self],

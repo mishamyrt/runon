@@ -5,7 +5,7 @@ enum LoginItem {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library")
             .appendingPathComponent("LaunchAgents")
-            .appendingPathComponent("runif")
+            .appendingPathComponent("runon")
             .appendingPathExtension("plist")
     }
 
@@ -17,9 +17,9 @@ enum LoginItem {
         // swiftlint:disable legacy_objc_type
         let loginItem: NSDictionary = [
             "KeepAlive": false,
-            "Label": "co.myrt.runif",
+            "Label": "co.myrt.runon",
             "ProgramArguments": [
-                "/usr/local/bin/runif-daemon",
+                "/usr/local/bin/runon-daemon",
                 "run"
             ],
             "StandardErrorPath": "/dev/null",
