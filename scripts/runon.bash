@@ -19,6 +19,14 @@ isRunning() {
     fi
 }
 
+status() {
+    if isRunning; then
+        echo "runon is running"
+    else
+        echo "runon is not running"
+    fi
+}
+
 start() {
     if isRunning; then
         echo "runon daemon is already running"
@@ -73,6 +81,9 @@ case "$1" in
         ;;
     config-path)
         echo "$CONFIG_FILE"
+        ;;
+    status)
+        status
         ;;
     *)
         echo "Usage: runon run|start|stop|restart|autostart|print"
