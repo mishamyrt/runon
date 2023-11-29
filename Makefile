@@ -10,6 +10,7 @@ build:
 .PHONY: lint
 lint:
 	swiftlint lint --config .swiftlint.yaml .
+	shellcheck -a scripts/runon.bash
 
 install:
 	rm -f \

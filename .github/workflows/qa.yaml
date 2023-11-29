@@ -11,8 +11,8 @@ jobs:
     - uses: swift-actions/setup-swift@v1
       with:
         swift-version: '5.9'
-    - name: Install swiftlint
-      run: brew install swiftlint
+    - name: Setup linters
+      run: brew install swiftlint shellcheck
     - name: Setup dependencies
       run: swift package resolve
     - name: Check build
