@@ -5,37 +5,22 @@ class ScreenSource: EventSource {
     let semaphore = DispatchSemaphore(value: 1)
     var name = "screen"
     var listener: EventListener?
-    var lastScreens: [String]?
-    var updating = false
+    var lastScreens: [String]
 
-    @objc
-    func handleDisplayConnection(notification _: Notification) {
-        refreshScreens()
+    init() {
+        lastScreens = Self.getScreenNames()
     }
 
-    func subscribe() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleDisplayConnection),
-            name: NSApplication.didChangeScreenParametersNotification,
-            object: nil
-        )
-        refreshScreens()
-    }
-
-    func getScreenNames() -> [String] {
+    private static func getScreenNames() -> [String] {
         NSScreen.screens.map { screen in
             screen.localizedName
         }
     }
 
+    @objc
     func refreshScreens() {
         semaphore.wait()
-        let screens = getScreenNames()
-        guard var lastScreens else {
-            semaphore.signal()
-            return
-        }
+        let screens = Self.getScreenNames()
         for screen in screens where !lastScreens.contains(where: { $0 == screen }) {
             emit(kind: "connected", target: screen)
         }
@@ -44,5 +29,15 @@ class ScreenSource: EventSource {
         }
         lastScreens = screens
         semaphore.signal()
+    }
+
+    func subscribe() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshScreens),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+        refreshScreens()
     }
 }
