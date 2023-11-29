@@ -1,8 +1,15 @@
 #!/bin/bash
 # objc_initializeAfterForkError
 
+CONFIG_DIR="$HOME/.config/runon"
+CONFIG_FILE="$CONFIG_DIR/config.yaml"
 APP_PATH="/usr/local/bin/runon-daemon"
 PID_FILE="/tmp/runon.pid"
+
+editConfig() {
+    mkdir -p "$CONFIG_DIR"
+    ${EDITOR:=vi} "$CONFIG_FILE"
+}
 
 isRunning() {
     if [ -f $PID_FILE ]; then
@@ -60,6 +67,12 @@ case "$1" in
         ;;
     print)
         $APP_PATH print
+        ;;
+    config)
+        editConfig
+        ;;
+    config-path)
+        echo "$CONFIG_FILE"
         ;;
     *)
         echo "Usage: runon run|start|stop|restart|autostart|print"
