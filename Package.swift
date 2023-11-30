@@ -10,7 +10,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.2.0"),
-        .package(url: "https://github.com/JohnSundell/ShellOut.git", from: "2.0.0"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.6"),
         .package(url: "https://github.com/rnine/SimplyCoreAudio.git", from: "4.1.1"),
         .package(url: "https://github.com/onevcat/Rainbow", .upToNextMajor(from: "4.0.0"))
@@ -20,7 +19,6 @@ let package = Package(
             name: "runon",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-                .product(name: "ShellOut", package: "ShellOut"),
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "SimplyCoreAudio", package: "SimplyCoreAudio"),
                 .product(name: "Rainbow", package: "Rainbow"),
