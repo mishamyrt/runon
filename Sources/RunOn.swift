@@ -1,5 +1,9 @@
 import ArgumentParser
+import Logging
 import ServiceManagement
+
+let kAppId = "co.myrt.runon"
+var kLogger = Logger()
 
 @main
 struct RunOn: ParsableCommand {

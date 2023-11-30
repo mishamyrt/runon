@@ -7,21 +7,22 @@ class CommandRunner: EventListener {
         handlers = with
     }
 
-    func handleEvent(with: Event) {
+    func handleEvent(_ with: Event) {
         guard let handlersWithSource = handlers[with.source] else {
             return
         }
         for handler in handlersWithSource {
             if handler.kind == with.kind, handler.target == nil || handler.target == with.target {
                 do {
-                    print("Running", handler.command)
+                    kLogger.info("running '\(handler.command.green)'")
                     try shellOut(to: handler.command)
+                    kLogger.info("command successfully executed")
                 } catch {
                     if let error = error as? ShellOutError {
-                        print(error.message)
-                        print(error.output)
+                        kLogger.warning(error.message)
+                        kLogger.error(error.output)
                     } else {
-                        debugPrint(String(describing: error))
+                        kLogger.error(String(describing: error))
                     }
                 }
             }

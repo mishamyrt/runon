@@ -5,23 +5,28 @@ class EventObserver: EventListener, EventProvider {
 
     var sources: [EventSource] = []
 
-    init(sources: [EventSource]) {
+    init(_ sources: [EventSource]) {
         for var source in sources {
             source.listener = self
         }
         self.sources = sources
     }
 
-    func handleEvent(with: Event) {
-        print(with)
+    func handleEvent(_ with: Event) {
+        var message = "\(with.source.cyan) emitted \(with.kind.blue) event"
+        if !with.target.isEmpty {
+            message += " with \(with.target.yellow)"
+        }
+        kLogger.debug(message)
         guard let listener else {
             return
         }
-        listener.handleEvent(with: with)
+        listener.handleEvent(with)
     }
 
     func subscribeSources() {
         for source in sources {
+            kLogger.debug("subscribing to \(source.name.cyan)")
             source.subscribe()
         }
     }

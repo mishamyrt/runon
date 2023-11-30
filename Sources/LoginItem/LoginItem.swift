@@ -17,7 +17,7 @@ enum LoginItem {
         // swiftlint:disable legacy_objc_type
         let loginItem: NSDictionary = [
             "KeepAlive": false,
-            "Label": "co.myrt.runon",
+            "Label": kAppId,
             "ProgramArguments": [
                 "/usr/local/bin/runon-daemon",
                 "run"

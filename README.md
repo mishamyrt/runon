@@ -50,3 +50,4 @@ The application is controlled through commands:
 - `restart` — restarts background application.
 - `run` — runs the application in the current process without daemonization.
 - `autostart` — controls the automatic start-up of the application.
+- `logs` — prints daemon logs.

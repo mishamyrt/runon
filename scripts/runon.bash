@@ -5,6 +5,7 @@ CONFIG_DIR="$HOME/.config/runon"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
 APP_PATH="/usr/local/bin/runon-daemon"
 PID_FILE="/tmp/runon.pid"
+LOG_FILE="/tmp/runon.log"
 
 editConfig() {
     mkdir -p "$CONFIG_DIR"
@@ -19,6 +20,10 @@ isRunning() {
     fi
 }
 
+logs() {
+    tail -f "$LOG_FILE"
+}
+
 status() {
     if isRunning; then
         echo "runon is running"
@@ -31,7 +36,7 @@ start() {
     if isRunning; then
         echo "runon daemon is already running"
     else
-        nohup $APP_PATH &> /dev/null &
+        nohup script -q $LOG_FILE $APP_PATH > $LOG_FILE &
         rm -f "$PID_FILE"
         echo $! > $PID_FILE
         echo "runon daemon started"
@@ -85,6 +90,9 @@ case "$1" in
     status)
         status
         ;;
+    logs)
+        logs
+        ;;
     *)
-        echo "Usage: runon run|start|stop|restart|autostart|print"
+        echo "Usage: runon run|start|stop|restart|autostart|print|logs"
 esac

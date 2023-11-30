@@ -5,7 +5,7 @@ struct Event {
 }
 
 protocol EventListener {
-    func handleEvent(with: Event)
+    func handleEvent(_ with: Event)
 }
 
 protocol EventProvider {
@@ -23,7 +23,7 @@ extension EventSource {
         guard let listener else {
             return
         }
-        listener.handleEvent(with: Event(
+        listener.handleEvent(Event(
             source: name,
             kind: kind,
             target: target
