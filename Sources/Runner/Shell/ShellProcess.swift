@@ -27,10 +27,10 @@ struct ShellProcess {
     func launch() throws {
         var timeoutReached = false
         process.launch()
-        kLogger.debug("command was started".yellow)
+        Logger.debug("command was started".yellow)
 
         let timer = Timer(timeInterval: timeInterval, repeats: false) { _ in
-            kLogger.debug("command timeout, terminating".red)
+            Logger.debug("command timeout, terminating".red)
             timeoutReached = true
             process.terminate()
         }
@@ -38,7 +38,7 @@ struct ShellProcess {
         RunLoop.current.add(timer, forMode: .default)
 
         process.waitUntilExit()
-        kLogger.debug("command finished".yellow)
+        Logger.debug("command finished".yellow)
         timer.invalidate()
 
         if timeoutReached {

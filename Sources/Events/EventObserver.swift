@@ -17,7 +17,7 @@ class EventObserver: EventListener, EventProvider {
         if !event.target.isEmpty {
             message += " with \(event.target.yellow)"
         }
-        kLogger.debug(message)
+        Logger.debug(message)
         guard let listener else {
             return
         }
@@ -26,7 +26,7 @@ class EventObserver: EventListener, EventProvider {
 
     func subscribeSources() {
         for source in sources {
-            kLogger.debug("subscribing to \(source.name.cyan)")
+            Logger.debug("subscribing to \(source.name.cyan)")
             source.subscribe()
         }
     }

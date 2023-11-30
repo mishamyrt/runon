@@ -17,7 +17,7 @@ extension RunOn {
         var configPath: String?
 
         mutating func run() throws {
-            kLogger.verbose = verbose
+            kLoggerVerbose = true
             let config = try Config(from: configPath)
             let activeSources = sources.filter { source in
                 config.sources.contains(source.name)
@@ -26,7 +26,7 @@ extension RunOn {
             let observer = EventObserver(activeSources)
             observer.listener = runner
             let sourceNames = activeSources.map { source in source.name.cyan }
-            kLogger.info("observed sources: \(sourceNames.joined(separator: ", "))")
+            Logger.info("observed sources: \(sourceNames.joined(separator: ", "))")
             observer.runLoop()
         }
     }
