@@ -12,16 +12,16 @@ class EventObserver: EventListener, EventProvider {
         self.sources = sources
     }
 
-    func handleEvent(_ with: Event) {
-        var message = "\(with.source.cyan) emitted \(with.kind.blue) event"
-        if !with.target.isEmpty {
-            message += " with \(with.target.yellow)"
+    func handle(_ event: Event) {
+        var message = "\(event.source.cyan) emitted \(event.kind.blue) event"
+        if !event.target.isEmpty {
+            message += " with \(event.target.yellow)"
         }
         kLogger.debug(message)
         guard let listener else {
             return
         }
-        listener.handleEvent(with)
+        listener.handle(event)
     }
 
     func subscribeSources() {

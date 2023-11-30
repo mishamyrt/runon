@@ -18,11 +18,9 @@ extension RunOn {
 
         mutating func run() throws {
             kLogger.verbose = verbose
-            guard let config = ConfigLoader.read(handlersOf: configPath) else {
-                throw ValidationError("Can't open config file.")
-            }
+            let config = try Config(from: configPath)
             let activeSources = sources.filter { source in
-                config.keys.contains(source.name)
+                config.sources.contains(source.name)
             }
             let runner = CommandRunner(with: config)
             let observer = EventObserver(activeSources)
