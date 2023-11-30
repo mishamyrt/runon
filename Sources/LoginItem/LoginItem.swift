@@ -1,35 +1,47 @@
 import Foundation
 
-enum LoginItem {
-    private static var loginPath: URL {
+struct LoginItem {
+    let label: String
+    let arguments: [String]
+    let standardOutput: String
+    let standardError: String
+    var path: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library")
             .appendingPathComponent("LaunchAgents")
-            .appendingPathComponent("runon")
+            .appendingPathComponent(label)
             .appendingPathExtension("plist")
     }
-
-    static var exists: Bool {
-        FileManager.default.fileExists(atPath: loginPath.path())
+    var exists: Bool {
+        FileManager.default.fileExists(atPath: path.path())
     }
 
-    static func create() {
+    init(
+        for label: String,
+        arguments: [String],
+        standardOutput: String = "/dev/null",
+        standardError: String = "/dev/null"
+    ) {
+        self.label = label
+        self.arguments = arguments
+        self.standardOutput = standardOutput
+        self.standardError = standardError
+    }
+
+    func write() {
         // swiftlint:disable legacy_objc_type
         let loginItem: NSDictionary = [
             "KeepAlive": false,
-            "Label": kAppId,
-            "ProgramArguments": [
-                "/usr/local/bin/runon-daemon",
-                "run"
-            ],
-            "StandardErrorPath": "/dev/null",
-            "StandardOutPath": "/dev/null"
+            "Label": label,
+            "ProgramArguments": arguments,
+            "StandardErrorPath": standardError,
+            "StandardOutPath": standardOutput
         ]
         // swiftlint:enable legacy_objc_type
-        loginItem.write(to: loginPath, atomically: true)
+        loginItem.write(to: path, atomically: true)
     }
 
-    static func remove() throws {
-        try FileManager.default.removeItem(at: loginPath)
+    func remove() throws {
+        try FileManager.default.removeItem(at: path)
     }
 }

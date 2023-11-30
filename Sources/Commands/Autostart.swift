@@ -1,6 +1,11 @@
 import ArgumentParser
 import Foundation
 
+let kLoginItem = LoginItem(for: kAppId, arguments: [
+    "/usr/local/bin/runon-daemon",
+    "run"
+])
+
 extension RunOn {
     struct Autostart: ParsableCommand {
         static var configuration =
@@ -10,7 +15,7 @@ extension RunOn {
             )
 
         mutating func run() throws {
-            printAutostartStatus(enabled: LoginItem.exists)
+            printAutostartStatus(enabled: kLoginItem.exists)
         }
     }
 
@@ -31,8 +36,8 @@ extension RunOn.Autostart {
             CommandConfiguration(abstract: "Enable autostart.")
 
         mutating func run() throws {
-            if !LoginItem.exists {
-                LoginItem.create()
+            if !kLoginItem.exists {
+                kLoginItem.write()
             }
             RunOn.printAutostartStatus(enabled: true)
         }
@@ -43,8 +48,8 @@ extension RunOn.Autostart {
             CommandConfiguration(abstract: "Disable autostart.")
 
         mutating func run() throws {
-            if LoginItem.exists {
-                try LoginItem.remove()
+            if kLoginItem.exists {
+                try kLoginItem.remove()
             }
             RunOn.printAutostartStatus(enabled: false)
         }
