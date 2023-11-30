@@ -1,3 +1,7 @@
 - on: app:activated
   with: com.google.Chrome
   run: ls -la
+- on: app:activated
+  with: com.microsoft.VSCode
+  run: sleep 20
+  timeout: 2s
