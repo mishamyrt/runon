@@ -36,6 +36,7 @@ start() {
     if isRunning; then
         echo "runon daemon is already running"
     else
+        # shellcheck disable=SC2094
         nohup script -q $LOG_FILE $APP_PATH > $LOG_FILE &
         rm -f "$PID_FILE"
         echo $! > $PID_FILE
