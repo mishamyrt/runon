@@ -14,7 +14,7 @@ public struct ShellError: Swift.Error {
     public let message: String
 }
 
-struct ShellProcess {
+class ShellProcess {
     private let process: Process
     private let outputPipe: Pipe
     private let errorPipe: Pipe
@@ -38,7 +38,7 @@ struct ShellProcess {
         timeInterval = timeout
     }
 
-    func waitUntilExit() {
+    private func waitUntilExit() {
         guard let deadline else {
             return
         }
@@ -54,7 +54,7 @@ struct ShellProcess {
         }
     }
 
-    mutating func run() throws {
+    func run() throws {
         process.launch()
         Logger.debug("command was started".yellow)
         deadline = Date().advanced(by: timeInterval)
@@ -86,7 +86,7 @@ struct ShellProcess {
 }
 
 func shell(with command: String, timeout: TimeInterval = 30) throws -> String {
-    var process = ShellProcess(with: command, timeout: timeout)
+    let process = ShellProcess(with: command, timeout: timeout)
     try process.run()
     return process.output
 }
