@@ -7,6 +7,14 @@ class CommandRunner: EventListener {
         config = with
     }
 
+    func format(handler: Handler) -> String {
+        let result = "\(handler.source.cyan):\(handler.kind.blue)"
+        guard let target = handler.target else {
+            return result
+        }
+        return result + " with \(target.yellow)"
+    }
+
     func handle(_ event: Event) {
         guard let handler = config.findHandler(
             source: event.source,
@@ -17,7 +25,7 @@ class CommandRunner: EventListener {
             return
         }
         do {
-            Logger.info("running '\(handler.source):\(handler.kind) handler'")
+            Logger.info("running \(format(handler: handler)) handler")
             let output = try shell(withScript: handler.commands, timeout: handler.timeout)
             Logger.info("command successfully finished".green)
             if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
