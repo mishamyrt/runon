@@ -26,7 +26,9 @@ class CommandRunner: EventListener {
         } catch {
             if let error = error as? ShellError {
                 Logger.error("The process exited with a non-zero status code: \(error.code).")
-                Logger.error("Message: \(error.message)")
+                if !error.message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Logger.error("Message: \(error.message)")
+                }
             } else {
                 Logger.error(String(describing: error))
             }

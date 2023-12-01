@@ -17,7 +17,7 @@ extension RunOn {
         var configPath: String?
 
         mutating func run() throws {
-            kLoggerVerbose = true
+            kLoggerVerbose = verbose
             let config = try Config(from: configPath)
             let activeSources = sources.filter { source in
                 config.sources.contains(source.name)
