@@ -46,7 +46,7 @@ daemon::start() {
         echo "daemon is already running"
     else
         # shellcheck disable=SC2094
-        nohup script -q $LOG_FILE $APP_PATH > $LOG_FILE &
+        nohup script -q $LOG_FILE "$APP_PATH" "${@}" > $LOG_FILE &
         rm -f "$PID_FILE"
         echo $! > $PID_FILE
         echo "daemon started"
@@ -114,7 +114,7 @@ case "$1" in
         app::autostart "${@:2}"
         ;;
     start)
-        daemon::start
+        daemon::start "${@:2}"
         ;;
     stop)
         daemon::stop
