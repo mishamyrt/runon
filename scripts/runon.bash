@@ -22,11 +22,15 @@ config::path() {
 }
 
 app::run() {
-    $APP_PATH
+    $APP_PATH run "${@}"
 }
 
 app::print() {
     $APP_PATH print
+}
+
+app::autostart() {
+    $APP_PATH autostart "${@}"
 }
 
 daemon::is_running() {
@@ -101,17 +105,13 @@ display_help() {
 
 case "$1" in
     run)
-        app::run
+        app::run "${@:2}"
         ;;
     print)
         app::print
         ;;
     autostart)
-        if [ -z "$2" ]; then
-            $APP_PATH autostart
-        else
-            $APP_PATH autostart "$2"
-        fi
+        app::autostart "${@:2}"
         ;;
     start)
         daemon::start
