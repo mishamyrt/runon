@@ -1,4 +1,13 @@
+import Darwin.C
 import Foundation
+
+@_silgen_name("kill")
+private func kill(pid: Int32, signal: Int32) -> Int32
+
+enum ProcessSignal {
+    case check
+    case kill
+}
 
 public struct ShellError: Swift.Error {
     public let code: Int32
@@ -10,8 +19,13 @@ struct ShellProcess {
     private let outputPipe: Pipe
     private let errorPipe: Pipe
     private let timeInterval: TimeInterval
+    private var deadline: Date?
 
-    init(with command: String, timeout: TimeInterval = 30) {
+    var output: String {
+        outputPipe.stringValue
+    }
+
+    init(with command: String, timeout: TimeInterval) {
         process = Process()
         // Set stderr/stdout
         outputPipe = Pipe()
@@ -24,29 +38,30 @@ struct ShellProcess {
         timeInterval = timeout
     }
 
-    func launch() throws {
-        var timeoutReached = false
+    func waitUntilExit() {
+        guard let deadline else {
+            return
+        }
+        while true {
+            if send(signal: .check) == -1 {
+                return
+            }
+            if deadline.timeIntervalSinceNow < 0 {
+                send(signal: .kill)
+                continue
+            }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+    }
+
+    mutating func run() throws {
         process.launch()
         Logger.debug("command was started".yellow)
+        deadline = Date().advanced(by: timeInterval)
 
-        let timer = Timer(timeInterval: timeInterval, repeats: false) { _ in
-            Logger.debug("command timeout, terminating".red)
-            timeoutReached = true
-            process.terminate()
-        }
+        waitUntilExit()
 
-        RunLoop.current.add(timer, forMode: .default)
-
-        process.waitUntilExit()
         Logger.debug("command finished".yellow)
-        timer.invalidate()
-
-        if timeoutReached {
-            throw ShellError(
-                code: -1,
-                message: "command execution has exceeded the allowed time."
-            )
-        }
 
         if process.terminationStatus != 0 {
             throw ShellError(
@@ -55,4 +70,23 @@ struct ShellProcess {
             )
         }
     }
+
+    @discardableResult
+    private func send(signal: ProcessSignal) -> Int32 {
+        let signalCode: Int32
+        switch signal {
+        case .check:
+            signalCode = 0
+
+        case .kill:
+            signalCode = 9
+        }
+        return kill(process.processIdentifier, signalCode)
+    }
+}
+
+func shell(with command: String, timeout: TimeInterval = 30) throws -> String {
+    var process = ShellProcess(with: command, timeout: timeout)
+    try process.run()
+    return process.output
 }

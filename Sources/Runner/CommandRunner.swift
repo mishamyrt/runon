@@ -17,10 +17,12 @@ class CommandRunner: EventListener {
             return
         }
         do {
-            let process = ShellProcess(with: handler.command, timeout: handler.timeout)
             Logger.info("running '\(handler.command.green)'")
-            try process.launch()
-            Logger.info("command successfully executed".green)
+            let output = try shell(with: handler.command, timeout: handler.timeout)
+            Logger.info("command successfully finished".green)
+            if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Logger.debug("output:\n\(output)")
+            }
         } catch {
             if let error = error as? ShellError {
                 Logger.error("The process exited with a non-zero status code: \(error.code).")

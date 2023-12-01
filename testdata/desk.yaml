@@ -1,0 +1,9 @@
+- on: screen:connected
+  with: Mi 27 NU
+  run: open /Users/mishamyrt/Shortcuts/myrtdesk_connected.app
+  timeout: 5s
+
+- on: screen:disconnected
+  with: Mi 27 NU
+  run: open /Users/mishamyrt/Shortcuts/myrtdesk_disconnected.app
+  timeout: 5s
