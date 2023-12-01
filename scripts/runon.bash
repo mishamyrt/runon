@@ -1,18 +1,35 @@
 #!/bin/bash
-# objc_initializeAfterForkError
+# Due to the limitations of Swift (or rather even Objective C),
+# it is not possible to make a fork to create a Daemon process.
+# I didn't want to make an XPC service or something similar,
+# so made a separate script that manages the Daemon process.
+# 
+# A search query for those interested in the details: objc_initializeAfterForkError
 
-CONFIG_DIR="$HOME/.config/runon"
-CONFIG_FILE="$CONFIG_DIR/config.yaml"
-APP_PATH="/usr/local/bin/runon-daemon"
-PID_FILE="/tmp/runon.pid"
-LOG_FILE="/tmp/runon.log"
+readonly CONFIG_DIR="$HOME/.config/runon"
+readonly CONFIG_FILE="$CONFIG_DIR/config.yaml"
+readonly APP_PATH="/usr/local/bin/runon-daemon"
+readonly PID_FILE="/tmp/runon.pid"
+readonly LOG_FILE="/tmp/runon.log"
 
-editConfig() {
+config::edit() {
     mkdir -p "$CONFIG_DIR"
     ${EDITOR:=vi} "$CONFIG_FILE"
 }
 
-isRunning() {
+config::path() {
+    echo "$CONFIG_FILE"
+}
+
+app::run() {
+    $APP_PATH
+}
+
+app::print() {
+    $APP_PATH print
+}
+
+daemon::is_running() {
     if [ -f $PID_FILE ]; then
         kill -0 "$(cat $PID_FILE)" &> /dev/null
     else
@@ -20,48 +37,75 @@ isRunning() {
     fi
 }
 
-logs() {
-    tail -f "$LOG_FILE"
+daemon::start() {
+    if daemon::is_running; then
+        echo "daemon is already running"
+    else
+        # shellcheck disable=SC2094
+        nohup script -q $LOG_FILE $APP_PATH > $LOG_FILE &
+        rm -f "$PID_FILE"
+        echo $! > $PID_FILE
+        echo "daemon started"
+    fi
 }
 
-status() {
-    if isRunning; then
+daemon::stop() {
+    if daemon::is_running; then
+        kill -9 "$(cat $PID_FILE)"
+        rm $PID_FILE
+        echo "daemon stopped"
+    else
+        echo "daemon is not yet running "
+    fi
+}
+
+daemon::restart() {
+    daemon::stop
+    daemon::start
+}
+
+daemon::status() {
+    if daemon::is_running; then
         echo "runon is running"
     else
         echo "runon is not running"
     fi
 }
 
-start() {
-    if isRunning; then
-        echo "runon daemon is already running"
+daemon::log() {
+    if [ ! -f $LOG_FILE ]; then
+        echo "Log file is not found"
     else
-        # shellcheck disable=SC2094
-        nohup script -q $LOG_FILE $APP_PATH > $LOG_FILE &
-        rm -f "$PID_FILE"
-        echo $! > $PID_FILE
-        echo "runon daemon started"
+        tail -f "$LOG_FILE"
     fi
 }
 
-stop() {
-    if isRunning; then
-        kill "$(cat $PID_FILE)"
-        rm $PID_FILE
-        echo "runon daemon stopped"
-    else
-        echo "runon daemon is not running"
-    fi
-}
-
-restart() {
-    stop
-    start
+display_help() {
+   echo "A utility for automating actions on system events."
+   echo
+   echo "Usage: runon <subcommand>"
+   echo
+   echo "Subcommands:"
+   echo "  run           Runs the application in the current process without daemonization."
+   echo "  print         Starts the observer in a special mode that prints all supported events."
+   echo "  autostart     Enables, disables, or prints the autostart status."
+   echo "  start         Starts the application in the background."
+   echo "  stop          Stops the background application."
+   echo "  restart       Restarts background application."
+   echo "  status        Prints the status of the application."
+   echo "  log           Starts the application log viewer in follow mode."
+   echo "  config        Opens editing of the configuration file."
+   echo "  config-path   Prints the absolute path of the configuration file."
+   echo "  help          Prints this message."
+   echo
 }
 
 case "$1" in
     run)
-        $APP_PATH run
+        app::run
+        ;;
+    print)
+        app::print
         ;;
     autostart)
         if [ -z "$2" ]; then
@@ -71,29 +115,26 @@ case "$1" in
         fi
         ;;
     start)
-        start
+        daemon::start
         ;;
     stop)
-        stop
+        daemon::stop
         ;;
     restart)
-        restart
-        ;;
-    print)
-        $APP_PATH print
-        ;;
-    config)
-        editConfig
-        ;;
-    config-path)
-        echo "$CONFIG_FILE"
+        daemon::restart
         ;;
     status)
-        status
+        daemon::status
         ;;
-    logs)
-        logs
+    log)
+        daemon::log
+        ;;
+    config)
+        config::edit
+        ;;
+    config-path)
+        config::path
         ;;
     *)
-        echo "Usage: runon run|start|stop|restart|autostart|print|logs"
+        display_help
 esac
