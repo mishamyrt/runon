@@ -96,7 +96,6 @@ display_help() {
    echo "  log           Starts the application log viewer in follow mode."
    echo "  config        Opens editing of the configuration file."
    echo "  config-path   Prints the absolute path of the configuration file."
-   echo "  help          Prints this message."
    echo
 }
 

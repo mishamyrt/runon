@@ -10,7 +10,7 @@ RunOn is a utility for running commands on macOS system events.
 
 The configuration is described in the format:
 
-> On the `SOURCE` has emitted an `EVENT` [with `DATA`], execute the `COMMAND`.
+> When `SOURCE` emits an `EVENT` [with `DATA`] execute a `COMMAND`
 
 Example:
 
@@ -33,6 +33,15 @@ If you want to run a command on an event, regardless of the input (`with`), then
   run: lunar set 60
 ```
 
+Execution of commands is time-limited. The default maximum time is 30 seconds. It can be set for each command separately.
+
+```yaml
+# the process will be terminated in 20 seconds
+- on: screen:disconnected
+  run: sleep 30
+  timeout: 20s
+```
+
 ## Event sources
 
 The following event sources can be subscribed to:
@@ -45,9 +54,13 @@ The following event sources can be subscribed to:
 
 The application is controlled through commands:
 
-- `start` — starts the application in the background.
-- `stop` — stops the background application.
-- `restart` — restarts background application.
-- `run` — runs the application in the current process without daemonization.
-- `autostart` — controls the automatic start-up of the application.
-- `logs` — prints daemon logs.
+- `run` — Runs the application in the current process without daemonization..
+- `print` — Starts the observer in a special mode that prints all supported events.
+- `autostart` — Enables, disables, or prints the autostart status.
+- `start` — Starts the application in the background.
+- `stop` — Stops the background application.
+- `restart` — Restarts background application.
+- `status` — Prints the status of the application.
+- `log` — Starts the application log viewer in follow mode.
+- `config` — Opens editing of the configuration file.
+- `config-path` — Prints the absolute path of the configuration file.
