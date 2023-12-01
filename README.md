@@ -61,6 +61,16 @@ Execution of commands is time-limited. The default maximum time is 30 seconds. I
   timeout: 20s
 ```
 
+To execute multiple commands sequentially, describe them in a multiline string, as in the script:
+
+```yaml
+# the process will be terminated in 20 seconds
+- on: screen:connected
+  run: |
+    setup_audio
+    desk_lights on
+```
+
 ## Event sources
 
 The following event sources can be subscribed to:

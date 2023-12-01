@@ -1,6 +1,9 @@
 - on: app:activated
   with: com.google.Chrome
-  run: ls -la
+  run: |
+    sleep 1
+    echo 'multiple commands'
+    ls -lah --color
 - on: app:activated
   with: com.microsoft.VSCode
   run: sleep 20

@@ -77,10 +77,17 @@ struct Config {
         }
     }
 
+    private func parseCommands(_ script: String) -> [String] {
+        let commands = script.components(separatedBy: "\n")
+        return commands.filter { command in
+            !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
     private func parseHandler(_ handler: [AnyHashable: String]) throws -> Handler {
         guard
             let condition = handler["on"],
-            let command = handler["run"] else {
+            let script = handler["run"] else {
                 throw ConfigParsingError.invalidFormat
             }
         let conditionParts = condition.components(separatedBy: ":")
@@ -95,11 +102,12 @@ struct Config {
 
         let timeoutString = handler["timeout"] ?? "30s"
         let timeout = try parseInterval(timeoutString)
+        let commands = parseCommands(script)
 
         return Handler(
             source: provider,
             kind: event,
-            command: command,
+            commands: commands,
             target: handler["with"],
             timeout: timeout
         )

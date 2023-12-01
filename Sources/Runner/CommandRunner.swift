@@ -17,8 +17,8 @@ class CommandRunner: EventListener {
             return
         }
         do {
-            Logger.info("running '\(handler.command.green)'")
-            let output = try shell(with: handler.command, timeout: handler.timeout)
+            Logger.info("running '\(handler.source):\(handler.kind) handler'")
+            let output = try shell(withScript: handler.commands, timeout: handler.timeout)
             Logger.info("command successfully finished".green)
             if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Logger.debug("output:\n\(output)")

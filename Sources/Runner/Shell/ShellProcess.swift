@@ -18,6 +18,7 @@ class ShellProcess {
     private let process: Process
     private let outputPipe: Pipe
     private let errorPipe: Pipe
+    private let command: String
     private let timeInterval: TimeInterval
     private var deadline: Date?
 
@@ -36,6 +37,7 @@ class ShellProcess {
         process.launchPath = "/bin/bash"
         process.arguments = ["-c", command]
         timeInterval = timeout
+        self.command = command
     }
 
     private func waitUntilExit() {
@@ -56,6 +58,7 @@ class ShellProcess {
 
     func run() throws {
         process.launch()
+        Logger.debug("running \(command.yellow)")
         Logger.debug("command was started".yellow)
         deadline = Date().advanced(by: timeInterval)
 
@@ -89,4 +92,8 @@ func shell(with command: String, timeout: TimeInterval = 30) throws -> String {
     let process = ShellProcess(with: command, timeout: timeout)
     try process.run()
     return process.output
+}
+
+func shell(withScript commands: [String], timeout: TimeInterval = 30) throws -> String {
+    try shell(with: commands.joined(separator: " && "), timeout: timeout)
 }
