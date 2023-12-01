@@ -1,4 +1,5 @@
 import Foundation
+import Shellac
 
 class CommandRunner: EventListener {
     let config: Config
@@ -26,7 +27,7 @@ class CommandRunner: EventListener {
         }
         do {
             Logger.info("running \(format(handler: handler)) handler")
-            let output = try shell(withScript: handler.commands, timeout: handler.timeout)
+            let output = try shell(with: handler.commands, timeout: handler.timeout)
             Logger.info("command successfully finished".green)
             if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Logger.debug("output:\n\(output)")
@@ -34,8 +35,8 @@ class CommandRunner: EventListener {
         } catch {
             if let error = error as? ShellError {
                 Logger.error("The process exited with a non-zero status code: \(error.code).")
-                if !error.message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Logger.error("Message: \(error.message)")
+                if !error.error.isEmpty {
+                    Logger.error("Message: \(error.error)")
                 }
             } else {
                 Logger.error(String(describing: error))

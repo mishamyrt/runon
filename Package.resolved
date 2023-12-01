@@ -37,6 +37,15 @@
       }
     },
     {
+      "identity" : "swift-shellac",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mishamyrt/swift-shellac.git",
+      "state" : {
+        "revision" : "225c2243605889869831034496ff6404612703f4",
+        "version" : "1.0.0"
+      }
+    },
+    {
       "identity" : "yams",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/jpsim/Yams.git",
