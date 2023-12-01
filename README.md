@@ -6,7 +6,26 @@
 
 RunOn is a utility for running commands on macOS system events.
 
+## Installation
+
+### Build from source
+
+Building the project is currently only possible on macOS. Swift 5.9 is required for the build. 
+
+```sh
+# Build the project from source code
+make build
+# Install runon to the system
+sudo make install
+```
+
 ## Configuration
+
+To open editing of the configuration file, run the command:
+
+```sh
+runon config
+```
 
 The configuration is described in the format:
 
