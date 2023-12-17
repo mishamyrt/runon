@@ -64,7 +64,6 @@ Execution of commands is time-limited. The default maximum time is 30 seconds. I
 To execute multiple commands sequentially, describe them in a multiline string, as in the script:
 
 ```yaml
-# the process will be terminated in 20 seconds
 - on: screen:connected
   run: |
     setup_audio
