@@ -2,8 +2,22 @@ import Foundation
 import Yams
 
 enum ConfigParsingError: Error {
-    case invalidFormat
+    case invalidFormat(String)
+    case invalidGroup(String)
     case invalidValue
+}
+
+extension ConfigParsingError: CustomStringConvertible {
+    public var description: String {
+        switch self {
+        case .invalidFormat(let problem):
+            return "The config has format problem: \(problem)"
+        case .invalidValue:
+            return "The specified item could not be found"
+        case .invalidGroup(let group):
+            return "Requested group is not found: '\(group)'"
+        }
+    }
 }
 
 private var defaultConfigPath: URL {
@@ -42,7 +56,7 @@ struct Config {
         for action in file.actions {
             let actionGroup = action.group ?? "common"
             if groups[actionGroup] == nil {
-                throw ConfigParsingError.invalidValue
+                throw ConfigParsingError.invalidGroup(actionGroup)
             }
             let handler = try parseAction(action)
             if handlersMap[handler.source] == nil {
@@ -79,7 +93,7 @@ struct Config {
         guard
             let value = scanner.scanDouble(),
             let unit = scanner.scanCharacters(from: CharacterSet.letters) else {
-                throw ConfigParsingError.invalidFormat
+                throw ConfigParsingError.invalidFormat("time unit is not found")
             }
 
         switch unit.lowercased() {
@@ -103,12 +117,12 @@ struct Config {
     private func parseAction(_ action: ActionConfig) throws -> Action {
         let conditionParts = action.on.components(separatedBy: ":")
         if conditionParts.count != 2 {
-            throw ConfigParsingError.invalidFormat
+            throw ConfigParsingError.invalidFormat("action format is invalid is not found at '\(action.on)'")
         }
         guard
             let provider = conditionParts[safe: 0],
             let event = conditionParts[safe: 1] else {
-                throw ConfigParsingError.invalidFormat
+                throw ConfigParsingError.invalidFormat("action format is invalid is not found at '\(action.on)'")
             }
 
         let timeoutString = action.timeout ?? "30s"
