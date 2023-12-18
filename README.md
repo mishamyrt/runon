@@ -34,40 +34,43 @@ The configuration is described in the format:
 Example:
 
 ```yaml
-# If my work monitor is connected, turn on the desk backlight
-- on: screen:connected
-  with: Mi 27 NU
-  run: myrt_desk on
-# If the monitor is disconnected, turn off the desk backlight
-- on: screen:disconnected
-  with: Mi 27 NU
-  run: myrt_desk off
+actions:
+  # If my work monitor is connected, turn on the desk backlight
+  - on: screen:connected
+    with: Mi 27 NU
+    run: myrt_desk on# If the monitor is disconnected, turn off the desk backlight
+  - on: screen:disconnected
+    with: Mi 27 NU
+    run: myrt_desk off
 ```
 
 If you want to run a command on an event, regardless of the input (`with`), then use the simplified notation:
 
 ```yaml
-# If any monitor is disconnected, set brightness to 60%
-- on: screen:disconnected
-  run: lunar set 60
+actions:
+  # If any monitor is disconnected, set brightness to 60%
+  - on: screen:disconnected
+    run: lunar set 60
 ```
 
 Execution of commands is time-limited. The default maximum time is 30 seconds. It can be set for each command separately.
 
 ```yaml
-# the process will be terminated in 20 seconds
-- on: screen:disconnected
-  run: sleep 30
-  timeout: 20s
+actions:
+  # the process will be terminated in 20 seconds
+  - on: screen:disconnected
+    run: sleep 30
+    timeout: 20s
 ```
 
 To execute multiple commands sequentially, describe them in a multiline string, as in the script:
 
 ```yaml
-- on: screen:connected
-  run: |
-    setup_audio
-    desk_lights on
+actions:
+  - on: screen:connected
+    run: |
+      setup_audio
+      desk_lights on
 ```
 
 ## Event sources

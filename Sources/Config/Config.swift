@@ -16,19 +16,36 @@ private var defaultConfigPath: URL {
 }
 
 struct Config {
-    var handlersMap: [String: [Handler]] = [:]
+    var handlersMap: [String: [Action]] = [:]
     var sources: [String] {
         Array(handlersMap.keys)
     }
+    var groups: [String: ActionGroup] = [
+        "common": ActionGroup(debounce: 0)
+    ]
 
     init(from path: String?) throws {
         let pathUrl = getUrl(from: path)
         let contents = try String(contentsOf: pathUrl)
-        guard let descriptions = try Yams.load(yaml: contents) as? [[AnyHashable: String]] else {
-            throw ConfigParsingError.invalidFormat
+        let decoder = YAMLDecoder()
+        let decoded = try decoder.decode(ConfigFile.self, from: contents)
+        try parseConfig(decoded)
+    }
+
+    mutating func parseConfig(_ file: ConfigFile) throws {
+        let userGroups = file.groups ?? []
+        for group in userGroups {
+            let interval = try parseInterval(group.debounce ?? "0s")
+            Logger.info(group.debounce ?? "no debounce")
+            groups[group.name] = ActionGroup(debounce: interval)
         }
-        for description in descriptions {
-            let handler = try parseHandler(description)
+
+        for action in file.actions {
+            let actionGroup = action.group ?? "common"
+            if groups[actionGroup] == nil {
+                throw ConfigParsingError.invalidValue
+            }
+            let handler = try parseAction(action)
             if handlersMap[handler.source] == nil {
                 handlersMap[handler.source] = [handler]
             } else {
@@ -37,12 +54,12 @@ struct Config {
         }
     }
 
-    func findHandler(source: String, kind: String, target: String?) -> Handler? {
-        guard let sourceHandler = handlersMap[source] else {
+    func findAction(source: String, kind: String, target: String?) -> Action? {
+        guard let sourceAction = handlersMap[source] else {
             return nil
         }
 
-        for handler in sourceHandler where (
+        for handler in sourceAction where (
             handler.kind == kind && (handler.target != nil && handler.target == target)
         ) {
             return handler
@@ -84,13 +101,8 @@ struct Config {
         }
     }
 
-    private func parseHandler(_ handler: [AnyHashable: String]) throws -> Handler {
-        guard
-            let condition = handler["on"],
-            let script = handler["run"] else {
-                throw ConfigParsingError.invalidFormat
-            }
-        let conditionParts = condition.components(separatedBy: ":")
+    private func parseAction(_ action: ActionConfig) throws -> Action {
+        let conditionParts = action.on.components(separatedBy: ":")
         if conditionParts.count != 2 {
             throw ConfigParsingError.invalidFormat
         }
@@ -100,16 +112,17 @@ struct Config {
                 throw ConfigParsingError.invalidFormat
             }
 
-        let timeoutString = handler["timeout"] ?? "30s"
+        let timeoutString = action.timeout ?? "30s"
         let timeout = try parseInterval(timeoutString)
-        let commands = parseCommands(script)
+        let commands = parseCommands(action.run)
 
-        return Handler(
+        return Action(
             source: provider,
             kind: event,
             commands: commands,
-            target: handler["with"],
-            timeout: timeout
+            target: action.with,
+            timeout: timeout,
+            group: action.group ?? "common"
         )
     }
 }

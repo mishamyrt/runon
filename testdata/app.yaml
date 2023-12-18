@@ -1,10 +1,17 @@
-- on: app:activated
-  with: com.google.Chrome
-  run: |
-    sleep 1
-    echo 'multiple commands'
-    ls -lah --color
-- on: app:activated
-  with: com.microsoft.VSCode
-  run: sleep 20
-  timeout: 2s
+actions:
+  - on: app:activated
+    with: com.google.Chrome
+    group: app_switch
+    run: |
+      sleep 1
+      echo 'multiple commands'
+      ls -lah --color
+  - on: app:activated
+    with: com.microsoft.VSCode
+    run: sleep 20
+    group: app_switch
+    timeout: 2s
+
+groups:
+  - name: app_switch
+    debounce: 5s

@@ -22,7 +22,7 @@ extension RunOn {
             let activeSources = sources.filter { source in
                 config.sources.contains(source.name)
             }
-            let runner = CommandRunner(with: config)
+            let runner = ActionRunner(with: config)
             let observer = EventObserver(activeSources)
             observer.listener = runner
             let sourceNames = activeSources.map { source in source.name.cyan }
