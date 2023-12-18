@@ -36,7 +36,6 @@ struct Config {
         let userGroups = file.groups ?? []
         for group in userGroups {
             let interval = try parseInterval(group.debounce ?? "0s")
-            Logger.info(group.debounce ?? "no debounce")
             groups[group.name] = ActionGroup(debounce: interval)
         }
 

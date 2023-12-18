@@ -17,7 +17,7 @@ class ActionQueue {
             return
         }
         if isRunning {
-            Logger.debug("Skipping \(formatMessage(action)) action")
+            Logger.info("debounced action \(formatMessage(action))")
             return
         }
         isRunning = true
@@ -33,7 +33,7 @@ class ActionQueue {
         guard let target = action.target else {
             return result
         }
-        return "\(name.magenta): \(result) with \(target.yellow)"
+        return "on \(name.magenta) - \(result) with \(target.yellow)"
     }
 
     private func runAction(_ action: Action) {
