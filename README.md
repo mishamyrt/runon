@@ -73,6 +73,27 @@ actions:
       desk_lights on
 ```
 
+### Groups
+
+Several actions can be combined into groups. Within a group, you can set a minimum interval between two actions.
+
+```yaml
+actions:
+  - on: screen:connected
+    with: Mi 27 NU
+    run: myrt_desk on
+    group: desk
+  - on: screen:disconnected
+    with: Mi 27 NU
+    run: myrt_desk off
+    group: desk
+  
+groups:
+  # avoid flickering
+  - name: desk
+    debounce: 5s
+```
+
 ## Event sources
 
 The following event sources can be subscribed to:
