@@ -95,9 +95,13 @@ struct Config {
             return nil
         }
 
-        for handler in sourceAction where (
-            handler.kind == kind && (handler.target != nil && handler.target == target)
-        ) {
+        for handler in sourceAction where handler.kind == kind {
+			if target != nil {
+				if handler.target != nil && handler.target == target {
+					return handler
+				}
+				continue
+			}
             return handler
         }
         return nil
