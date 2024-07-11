@@ -3,7 +3,9 @@ import Foundation
 
 let kLoginItem = LoginItem(for: kAppId, arguments: [
     "/usr/local/bin/runon-daemon",
-    "run"
+    "run",
+    "--config",
+    kDefaultConfigPath
 ])
 
 extension RunOn {
