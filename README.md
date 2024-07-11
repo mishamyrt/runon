@@ -10,7 +10,7 @@ RunOn is a utility for running commands on macOS system events.
 
 ### Build from source
 
-Building the project is currently only possible on macOS. Swift 5.9 is required for the build. 
+Building the project is currently only possible on macOS. Swift 5.9 is required for the build.
 
 ```sh
 # Build the project from source code
@@ -73,6 +73,19 @@ actions:
       desk_lights on
 ```
 
+Multiple sources or target events can be specified in a similar way:
+
+```yaml
+actions:
+  - on: |
+      screen:connected
+	  screen:disconnected
+	with: |
+	  Mi 27 NU
+	  ROG 32U
+	run: echo 'display changed'
+```
+
 ### Groups
 
 Several actions can be combined into groups. Within a group, you can set a minimum interval between two actions.
@@ -87,7 +100,7 @@ actions:
     with: Mi 27 NU
     run: myrt_desk off
     group: desk
-  
+
 groups:
   # avoid flickering
   - name: desk

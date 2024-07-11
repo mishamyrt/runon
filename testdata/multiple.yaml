@@ -1,0 +1,8 @@
+actions:
+  - on: |
+      app:activated
+      app:deactivated
+    with: |
+      com.google.Chrome
+      com.microsoft.VSCode
+    run: echo "test"

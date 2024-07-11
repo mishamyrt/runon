@@ -9,10 +9,10 @@ var kDefaultConfigURL: URL {
         .appendingPathComponent("config")
         .appendingPathExtension("yaml")
 }
-
 var kDefaultConfigPath: String {
     kDefaultConfigURL.absoluteString.dropSchema("file")
 }
+let kDefaultGroup = "common"
 
 enum ConfigError: Error {
     case invalidFormat(String)
@@ -115,16 +115,18 @@ struct Config {
         }
 
         for action in spec.actions {
-            let actionGroup = action.group ?? "common"
+            let actionGroup = action.group ?? kDefaultGroup
             if groups[actionGroup] == nil {
                 throw ConfigError.invalidGroup(actionGroup)
             }
-            let handler = try parseAction(action)
-            if handlersMap[handler.source] == nil {
-                handlersMap[handler.source] = [handler]
-            } else {
-                handlersMap[handler.source]?.append(handler)
-            }
+            let handlers = try parseActions(action)
+			for handler in handlers {
+				if handlersMap[handler.source] == nil {
+					handlersMap[handler.source] = [handler]
+				} else {
+					handlersMap[handler.source]?.append(handler)
+				}
+			}
         }
     }
 
@@ -135,15 +137,19 @@ struct Config {
         }
     }
 
-    private func parseAction(_ action: ActionConfig) throws -> Action {
-        let conditionParts = action.on.components(separatedBy: ":")
-        if conditionParts.count != 2 {
-            throw ConfigError.invalidFormat("action format is invalid is not found at '\(action.on)'")
+	private func parseConditionAction(
+		_ condition: String,
+		_ target: String?,
+		_ action: ActionConfig
+	) throws -> Action {
+		let conditionParts = condition.components(separatedBy: ":")
+		if conditionParts.count != 2 {
+            throw ConfigError.invalidFormat("invalid parts count on '\(condition)'")
         }
         guard
             let provider = conditionParts[safe: 0],
             let event = conditionParts[safe: 1] else {
-                throw ConfigError.invalidFormat("action format is invalid is not found at '\(action.on)'")
+                throw ConfigError.invalidFormat("invalid parts on '\(action.on)'")
             }
 
         let timeoutValue = action.timeout ?? "30s"
@@ -154,9 +160,37 @@ struct Config {
             source: provider,
             kind: event,
             commands: commands,
-            target: action.with,
+            target: target,
             timeout: timeout,
-            group: action.group ?? "common"
+            group: action.group ?? kDefaultGroup
         )
+	}
+
+	private func parseMultipleOptions(_ options: String) -> [String] {
+		options
+			.components(separatedBy: "\n")
+			.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+			.filter { !$0.isEmpty }
+	}
+
+    private func parseActions(_ actionConfig: ActionConfig) throws -> [Action] {
+        let conditions = parseMultipleOptions(actionConfig.on)
+		var actions: [Action] = []
+		var targets: [String] = []
+		if let with = actionConfig.with {
+			targets += parseMultipleOptions(with)
+		}
+		for condition in conditions {
+			if targets.isEmpty {
+				let action = try parseConditionAction(condition, nil, actionConfig)
+				actions.append(action)
+				continue
+			}
+			for target in targets {
+				let action = try parseConditionAction(condition, target, actionConfig)
+				actions.append(action)
+			}
+		}
+		return actions
     }
 }

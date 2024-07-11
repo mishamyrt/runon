@@ -47,6 +47,7 @@ import Foundation
             kind: "connected",
 			target: "Home Speakers"
         )
+		#expect(homeAction != nil)
 		#expect(homeAction?.source == "audio")
         #expect(homeAction?.kind == "connected")
 		#expect(homeAction?.target == "Home Speakers")
@@ -60,6 +61,7 @@ import Foundation
             kind: "connected",
             target: "Work Speakers"
         )
+		#expect(workAction != nil)
         #expect(workAction?.source == "audio")
         #expect(workAction?.kind == "connected")
         #expect(workAction?.target == "Work Speakers")
@@ -72,10 +74,52 @@ import Foundation
 			kind: "disconnected",
 			target: nil
 		)
+		#expect(disconnectedAction != nil)
 		#expect(disconnectedAction?.source == "audio")
 		#expect(disconnectedAction?.kind == "disconnected")
 		#expect(disconnectedAction?.target == nil)
 		#expect(disconnectedAction?.group == "common")
 		#expect(disconnectedAction?.commands == ["eq-correction -disable"])
     }
+
+	@Test("check multiline actions")
+	func testMultiline() throws {
+		let spec: Specification = .init(
+			actions: [
+				.init(
+					on: "audio:connected \n audio:disconnected",
+					with: "first \n second",
+					run: "eq-correction -preset work",
+					group: nil,
+					timeout: nil
+				),
+			],
+			groups: [
+				.init(name: "test-group", debounce: nil),
+			]
+		)
+		let config = try Config(fromSpec: spec)
+		#expect(config.count == 4)
+
+		#expect(config.find(
+			source: "audio",
+			kind: "connected",
+			target: "first"
+		) != nil)
+		#expect(config.find(
+			source: "audio",
+			kind: "disconnected",
+			target: "first"
+		) != nil)
+		#expect(config.find(
+			source: "audio",
+			kind: "connected",
+			target: "second"
+		) != nil)
+		#expect(config.find(
+			source: "audio",
+			kind: "disconnected",
+			target: "second"
+		) != nil)
+	}
 }
