@@ -20,13 +20,17 @@ extension ConfigParsingError: CustomStringConvertible {
     }
 }
 
-private var defaultConfigPath: URL {
+var kDefaultConfigURL: URL {
     let homeDir = FileManager.default.homeDirectoryForCurrentUser
     return homeDir
         .appendingPathComponent(".config")
         .appendingPathComponent("runon")
         .appendingPathComponent("config")
         .appendingPathExtension("yaml")
+}
+
+var kDefaultConfigPath: String {
+    kDefaultConfigURL.absoluteString.trimSchema("file")
 }
 
 struct Config {
@@ -82,7 +86,7 @@ struct Config {
 
     private func getUrl(from path: String?) -> URL {
         guard let path else {
-            return defaultConfigPath
+            return kDefaultConfigURL
         }
         return URL(filePath: path)
     }
