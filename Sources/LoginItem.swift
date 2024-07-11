@@ -31,11 +31,12 @@ struct LoginItem {
     func write() {
         // swiftlint:disable legacy_objc_type
         let loginItem: NSDictionary = [
-            "KeepAlive": false,
+            "KeepAlive": true,
             "Label": label,
             "ProgramArguments": arguments,
             "StandardErrorPath": standardError,
-            "StandardOutPath": standardOutput
+            "StandardOutPath": standardOutput,
+            "RunAtLoad": true
         ]
         // swiftlint:enable legacy_objc_type
         loginItem.write(to: path, atomically: true)
