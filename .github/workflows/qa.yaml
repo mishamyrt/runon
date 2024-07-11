@@ -19,4 +19,5 @@ jobs:
       run: make build
     - name: Check code style
       run: make lint
-   
+    - name: Run tests
+      run: make test
