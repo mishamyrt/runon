@@ -25,7 +25,8 @@ let package = Package(
                 .product(name: "SimplyCoreAudio", package: "SimplyCoreAudio"),
                 .product(name: "Rainbow", package: "Rainbow"),
                 .product(name: "Shellac", package: "swift-shellac"),
-            ]
+            ],
+			exclude: ["BuildInfo.swift.dist"]
         ),
         .testTarget(
             name: "runonTests",

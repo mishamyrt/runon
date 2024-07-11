@@ -14,7 +14,8 @@ struct RunOn: ParsableCommand {
     static var configuration = CommandConfiguration(
         commandName: "runon-daemon",
         abstract: "A utility for automating actions on system events.",
-        version: "1.0.0",
+        discussion: "VERSION: \(kAppVersion) (\(kBuildCommit))",
+        version: kAppVersion,
         subcommands: [Run.self, Autostart.self, Print.self],
         defaultSubcommand: Run.self
     )

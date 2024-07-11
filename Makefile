@@ -1,3 +1,6 @@
+VERSION := 1.0.0
+BUILD_INFO_FILE := Sources/BuildInfo.swift
+
 .PHONY: help
 help: ## print this message
 	@awk \
@@ -5,8 +8,13 @@ help: ## print this message
 		{printf "\033[33m%-15s\033[0m %s\n", $$1, $$2}' \
 		$(MAKEFILE_LIST)
 
+
+.PHONY: generate
+generate: ## generate build info
+	@bash scripts/generate.bash $(VERSION)
+
 .PHONY: build
-build: ## build runon
+build: generate ## build runon
 	swift build
 	rm -rf ./dist
 	mkdir ./dist
@@ -15,7 +23,7 @@ build: ## build runon
 	chmod +x ./dist/runon
 
 .PHONY: lint
-lint: ## check code style
+lint: generate ## check code style
 	swiftlint lint --config .swiftlint.yaml .
 	shellcheck -a scripts/runon.bash
 
@@ -27,5 +35,5 @@ install: ## install runon to the system
 	cp dist/* /usr/local/bin/
 
 .PHONY: test
-test: ## run tests
+test: generate ## run tests
 	swift test

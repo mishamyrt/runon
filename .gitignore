@@ -7,3 +7,6 @@ dist/
 .swiftpm/
 .netrc
 .vscode
+
+# Generated files
+Sources/BuildInfo.swift
