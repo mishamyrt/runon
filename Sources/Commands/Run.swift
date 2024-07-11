@@ -1,4 +1,5 @@
 import ArgumentParser
+import Foundation
 
 extension RunOn {
     struct Run: ParsableCommand {
@@ -16,9 +17,13 @@ extension RunOn {
         )
         var configPath: String?
 
+        var configUrl: URL? {
+            configPath.map { URL(filePath: $0) }
+        }
+
         mutating func run() throws {
             kLoggerVerbose = verbose
-            let config = try Config(from: configPath)
+            let config = try Config(fromFile: configUrl)
             let activeSources = sources.filter { source in
                 config.sources.contains(source.name)
             }

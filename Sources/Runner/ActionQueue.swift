@@ -23,7 +23,7 @@ class ActionQueue {
         isRunning = true
         self.runAction(action)
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceInterval) {
-            Logger.debug("Unlock \(self.name)")
+            Logger.debug("unlock \(self.name.magenta)")
             self.isRunning = false
         }
     }

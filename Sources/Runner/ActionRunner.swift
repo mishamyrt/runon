@@ -21,7 +21,7 @@ class ActionRunner: EventListener {
     }
 
     func handle(_ event: Event) {
-        guard let action = config.findAction(
+        guard let action = config.find(
             source: event.source,
             kind: event.kind,
             target: event.target
