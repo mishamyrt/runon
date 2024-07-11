@@ -19,8 +19,13 @@ lint: ## check code style
 	swiftlint lint --config .swiftlint.yaml .
 	shellcheck -a scripts/runon.bash
 
+.PHONY: install
 install: ## install runon to the system
 	rm -f \
 		/usr/local/bin/runon \
 		/usr/local/bin/runon-daemon
 	cp dist/* /usr/local/bin/
+
+.PHONY: test
+test: ## run tests
+	swift test
