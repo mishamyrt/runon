@@ -10,78 +10,72 @@ import Foundation
         #expect(config.count == 0)
     }
 
-    @Test("check actions parsing and finding")
-    func testActions() throws {
+    @Test("check basic actions parsing and finding")
+    func testBasic() throws {
         let spec: Specification = .init(
             actions: [
                 .init(
-                    on: "screen:on",
-                    with: "Apple Pro Display",
-                    run: "echo 'yey!'",
+                    on: "audio:connected",
+                    with: "Work Speakers",
+                    run: "eq-correction -preset work",
+                    group: "test-group",
+                    timeout: "5s"
+                ),
+                .init(
+                    on: "audio:connected",
+                    with: "Home Speakers",
+                    run: "eq-correction -preset home",
                     group: nil,
                     timeout: nil
                 ),
-                .init(
-                    on: "screen:off",
-                    with: "Apple Pro Display",
-                    run: "echo 'oh no!'",
+				.init(
+                    on: "audio:disconnected",
+					with: nil,
+                    run: "eq-correction -disable",
                     group: nil,
-                    timeout: nil
-                ),
-            ],
-            groups: nil
-        )
-        let config = try Config(fromSpec: spec)
-
-        let action = config.find(
-            source: "screen",
-            kind: "off",
-            target: "Apple Pro Display"
-        )
-
-        #expect(action?.source == "screen")
-        #expect(action?.kind == "off")
-        #expect(action?.target == "Apple Pro Display")
-        #expect(action?.group == "common")
-        #expect(action?.commands == ["echo 'oh no!'"])
-    }
-
-    @Test("check groups parsing and finding")
-    func testGroups() throws {
-        let spec: Specification = .init(
-            actions: [
-                .init(
-                    on: "screen:on",
-                    with: "Apple Pro Display",
-                    run: "brightness 50%",
-                    group: "brightness",
-                    timeout: nil
-                ),
-                .init(
-                    on: "screen:off",
-                    with: "Apple Pro Display",
-                    run: "brightness 80%",
-                    group: "brightness",
                     timeout: nil
                 ),
             ],
             groups: [
-                .init(
-                    name: "brightness",
-                    debounce: "1s"
-                )
-            ]
+				.init(name: "test-group", debounce: nil),
+			]
         )
         let config = try Config(fromSpec: spec)
-        #expect(config.groups["brightness"]?.debounce == 1.0)
 
-        let action = config.find(
-            source: "screen",
-            kind: "on",
-            target: "Apple Pro Display"
+		let homeAction = config.find(
+            source: "audio",
+            kind: "connected",
+			target: "Home Speakers"
         )
-        #expect(action?.target == "Apple Pro Display")
-        #expect(action?.group == "brightness")
-        #expect(action?.commands == ["brightness 50%"])
+		#expect(homeAction?.source == "audio")
+        #expect(homeAction?.kind == "connected")
+		#expect(homeAction?.target == "Home Speakers")
+		#expect(
+			homeAction?.group == "common",
+			"group must be 'common' if no group is specified"
+		)
+
+        let workAction = config.find(
+            source: "audio",
+            kind: "connected",
+            target: "Work Speakers"
+        )
+        #expect(workAction?.source == "audio")
+        #expect(workAction?.kind == "connected")
+        #expect(workAction?.target == "Work Speakers")
+        #expect(workAction?.commands == ["eq-correction -preset work"])
+		#expect(workAction?.group == "test-group")
+		#expect(workAction?.timeout == 5.0)
+
+		let disconnectedAction = config.find(
+			source: "audio",
+			kind: "disconnected",
+			target: nil
+		)
+		#expect(disconnectedAction?.source == "audio")
+		#expect(disconnectedAction?.kind == "disconnected")
+		#expect(disconnectedAction?.target == nil)
+		#expect(disconnectedAction?.group == "common")
+		#expect(disconnectedAction?.commands == ["eq-correction -disable"])
     }
 }
