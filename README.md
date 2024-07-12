@@ -8,6 +8,12 @@ RunOn is a utility for running commands on macOS system events.
 
 ## Installation
 
+### Script
+
+```sh
+curl -skSfL https://raw.githubusercontent.com/mishamyrt/runon/main/scripts/install.sh | bash
+```
+
 ### Build from source
 
 Building the project is currently only possible on macOS. Swift 5.10 is required for the build.
