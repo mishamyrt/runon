@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./assets/logo.svg" alt="Run On logo" />
+    <img src="./assets/logo.svg" alt="RunOn logo" />
 </p>
 
 [![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
