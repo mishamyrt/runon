@@ -1,4 +1,4 @@
-VERSION := 1.0.0
+VERSION := 1.0.1
 ENTRYPOINT_SCRIPT_FILE := scripts/runon.bash
 BUILD_INFO_FILE := Sources/BuildInfo.swift
 BUILD_INFO_TEMPLATE := Sources/BuildInfo.template.swift
@@ -45,10 +45,16 @@ install: ## install runon to the system
 test: generate ## run tests
 	swift test
 
-.PHONY: CHANGELOG.md
-CHANGELOG.md:
-	git-chglog -o CHANGELOG.md
-
 .PHONY: setup
 setup:
 	swift package resolve
+
+.PHONY: release
+publish:
+	git tag "v${VERSION}"
+	git chglog -o CHANGELOG.md
+	git add Makefile
+	git add CHANGELOG.md
+	git commit -m "chore: release v${VERSION}"
+	git push
+	git push --tags
