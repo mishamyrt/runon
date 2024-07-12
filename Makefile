@@ -39,3 +39,7 @@ install: ## install runon to the system
 .PHONY: test
 test: generate ## run tests
 	swift test
+
+.PHONY: CHANGELOG.md
+CHANGELOG.md:
+	git-chglog -o CHANGELOG.md
