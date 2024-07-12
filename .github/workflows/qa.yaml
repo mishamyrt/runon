@@ -13,10 +13,10 @@ jobs:
       name: Setup Swift
       with:
         swift-version: '5.10.1'
+    - name: Setup dependencies
+      run: make setup
     - name: Setup linters
       run: brew install swiftlint shellcheck
-    - name: Setup dependencies
-      run: swift package resolve
     - name: Check build
       run: make build
     - name: Check code style

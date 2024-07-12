@@ -24,6 +24,11 @@ build: generate ## build runon
 	cp "${ENTRYPOINT_SCRIPT_FILE}" ./dist/runon
 	chmod +x ./dist/runon
 
+.PHONY: build-release
+build-release: build
+	bash ./build/generate-release-notes.sh "v${VERSION}" > dist/notes.md
+	cd dist; zip -r runon.zip .
+
 .PHONY: lint
 lint: generate ## check code style
 	swiftlint lint --config .swiftlint.yaml .
@@ -43,3 +48,7 @@ test: generate ## run tests
 .PHONY: CHANGELOG.md
 CHANGELOG.md:
 	git-chglog -o CHANGELOG.md
+
+.PHONY: setup
+setup:
+	swift package resolve

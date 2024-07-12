@@ -79,11 +79,11 @@ Multiple sources or target events can be specified in a similar way:
 actions:
   - on: |
       screen:connected
-	  screen:disconnected
-	with: |
-	  Mi 27 NU
-	  ROG 32U
-	run: echo 'display changed'
+	    screen:disconnected
+    with: |
+      Mi 27 NU
+      ROG 32U
+	  run: echo 'display changed'
 ```
 
 ### Groups

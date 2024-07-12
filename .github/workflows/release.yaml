@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  workflow_dispatch: # Only for testing purposes
+  push:
+    tags:
+      - v*
+
+jobs:
+  release:
+    needs: [build]
+    name: Publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '5.10.1'
+      - name: Setup dependencies
+        run: make setup
+      - name: Build
+        run: make build-release
+      - name: Set envs
+        if: github.event_name == 'push'
+        run: |
+          export RELEASE_VERSION=${GITHUB_REF#refs/*/}
+          echo "VERSION_DISPLAY=${RELEASE_VERSION:1}" >> $GITHUB_ENV
+      - name: Create GitHub release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.VERSION_DISPLAY }}
+          body_path: dist/notes.md
+          token: ${{ secrets.USER_PAT }}
+          files: |
+            dist/runon.zip
