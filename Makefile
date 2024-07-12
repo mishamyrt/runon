@@ -1,4 +1,4 @@
-VERSION := 1.0.1
+VERSION := 1.0.2
 ENTRYPOINT_SCRIPT_FILE := scripts/runon.bash
 BUILD_INFO_FILE := Sources/BuildInfo.swift
 BUILD_INFO_TEMPLATE := Sources/BuildInfo.template.swift
