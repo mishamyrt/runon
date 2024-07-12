@@ -1,5 +1,6 @@
 VERSION := 1.0.0
 BUILD_INFO_FILE := Sources/BuildInfo.swift
+BUILD_INFO_TEMPLATE := Sources/BuildInfo.template.swift
 
 .PHONY: help
 help: ## print this message
@@ -11,7 +12,8 @@ help: ## print this message
 
 .PHONY: generate
 generate: ## generate build info
-	@bash scripts/generate.bash $(VERSION)
+	@bash build/generate-info.sh \
+		"${BUILD_INFO_TEMPLATE}" "${VERSION}" > "${BUILD_INFO_FILE}"
 
 .PHONY: build
 build: generate ## build runon

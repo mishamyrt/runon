@@ -26,7 +26,7 @@ let package = Package(
                 .product(name: "Rainbow", package: "Rainbow"),
                 .product(name: "Shellac", package: "swift-shellac"),
             ],
-			exclude: ["BuildInfo.swift.dist"]
+			exclude: ["BuildInfo.template.swift"]
         ),
         .testTarget(
             name: "runonTests",
