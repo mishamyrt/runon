@@ -23,12 +23,12 @@ extension RunOn {
 
         mutating func run() throws {
             kLoggerVerbose = verbose
-            let config = try Config(fromFile: configUrl)
+            let config = try Config(fromContentsOf: configUrl)
+			let handler = ConfigHandler(with: config)
             let activeSources = sources.filter { source in
-                config.sources.contains(source.name)
+                handler.actionSources.contains(source.name)
             }
-			print(config.handlersMap)
-            let runner = ActionRunner(with: config)
+            let runner = ActionRunner(with: handler)
             let observer = EventObserver(activeSources)
             observer.listener = runner
             let sourceNames = activeSources.map { source in source.name.cyan }

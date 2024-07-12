@@ -3,16 +3,44 @@ import Foundation
 @testable import runon
 
 @Suite struct ConfigSuite {
-    @Test("check empty config creation")
-    func testEmpty() throws {
-        let spec: Specification = .init(actions: [], groups: [])
-        let config = try Config(fromSpec: spec)
-        #expect(config.count == 0)
+    @Test("check config creation")
+    func testBasicConstructor() throws {
+        let config = try Config(from: .init(actions: [
+			.init(
+				on: "audio:connected",
+				with: nil,
+				run: "echo 1",
+				group: nil,
+				timeout: nil
+			),
+			.init(
+				on: "screen:connected",
+				with: nil,
+				run: "echo 1",
+				group: nil,
+				timeout: nil
+			),
+		], groups: []))
+        #expect(config.actionMap.count == 2)
     }
 
-    @Test("check basic actions parsing and finding")
-    func testBasic() throws {
-        let spec: Specification = .init(
+	@Test("check config creation from file")
+	func testFileConstructor() throws {
+		let config = try Config(
+			fromContentsOf: URL(filePath: "testdata/basic.yaml")
+		)
+		#expect(config.actionMap.count > 0)
+	}
+
+	@Test("check empty config creation")
+	func testEmpty() throws {
+		let config = try Config(from: .init(actions: [], groups: []))
+		#expect(config.actionMap.count == 0)
+	}
+
+    @Test("check config parsing")
+    func testParsing() throws {
+        let config = try Config(from: .init(
             actions: [
                 .init(
                     on: "audio:connected",
@@ -29,7 +57,7 @@ import Foundation
                     timeout: nil
                 ),
 				.init(
-                    on: "audio:disconnected",
+                    on: "screen:disconnected",
 					with: nil,
                     run: "eq-correction -disable",
                     group: nil,
@@ -39,87 +67,102 @@ import Foundation
             groups: [
 				.init(name: "test-group", debounce: nil),
 			]
-        )
-        let config = try Config(fromSpec: spec)
+        ))
 
-		let homeAction = config.find(
-            source: "audio",
-            kind: "connected",
-			target: "Home Speakers"
-        )
-		#expect(homeAction != nil)
-		#expect(homeAction?.source == "audio")
-        #expect(homeAction?.kind == "connected")
-		#expect(homeAction?.target == "Home Speakers")
+		let actions = config.actionMap
+		let groups = config.groupMap
+
+		#expect(groups.count == 2, "should have 2 groups, but has \(groups.count)")
+		#expect(actions.count == 2, "should have 2 actions sources, but has \(actions.count)")
+
 		#expect(
-			homeAction?.group == "common",
-			"group must be 'common' if no group is specified"
-		)
+			actions["audio"]?.count == 2,
+			"should have 2 actions for audio, but has \(actions["audio"]?.count as Int?)")
 
-        let workAction = config.find(
-            source: "audio",
-            kind: "connected",
-            target: "Work Speakers"
-        )
-		#expect(workAction != nil)
-        #expect(workAction?.source == "audio")
-        #expect(workAction?.kind == "connected")
-        #expect(workAction?.target == "Work Speakers")
-        #expect(workAction?.commands == ["eq-correction -preset work"])
-		#expect(workAction?.group == "test-group")
-		#expect(workAction?.timeout == 5.0)
+		let audioActions = actions["audio"]!
+		let screenActions = actions["screen"]!
 
-		let disconnectedAction = config.find(
+		expectEqualActions(audioActions[0], .init(
 			source: "audio",
+			kind: "connected",
+			commands: ["eq-correction -preset work"],
+			target: "Work Speakers",
+			timeout: 5.0,
+			group: "test-group"
+		))
+
+		expectEqualActions(audioActions[1], .init(
+			source: "audio",
+			kind: "connected",
+			commands: ["eq-correction -preset home"],
+			target: "Home Speakers",
+			timeout: 30.0,
+			group: "common"
+		))
+
+		expectEqualActions(screenActions[0], .init(
+			source: "screen",
 			kind: "disconnected",
-			target: nil
-		)
-		#expect(disconnectedAction != nil)
-		#expect(disconnectedAction?.source == "audio")
-		#expect(disconnectedAction?.kind == "disconnected")
-		#expect(disconnectedAction?.target == nil)
-		#expect(disconnectedAction?.group == "common")
-		#expect(disconnectedAction?.commands == ["eq-correction -disable"])
+			commands: ["eq-correction -disable"],
+			target: nil,
+			timeout: 30.0,
+			group: "common"
+		))
     }
 
-	@Test("check multiline actions")
+	@Test("check config multiline parsing")
 	func testMultiline() throws {
-		let spec: Specification = .init(
+		let config = try Config(from: .init(
 			actions: [
 				.init(
 					on: "audio:connected \n audio:disconnected",
 					with: "first \n second",
-					run: "eq-correction -preset work",
+					run: "echo 1",
 					group: nil,
 					timeout: nil
 				),
 			],
-			groups: [
-				.init(name: "test-group", debounce: nil),
-			]
-		)
-		let config = try Config(fromSpec: spec)
-		#expect(config.count == 4)
+			groups: nil
+		))
 
-		#expect(config.find(
+		let actions = config.actionMap["audio"]!
+
+		#expect(actions.count == 4)
+
+		#expect(actions.contains(action: .init(
 			source: "audio",
 			kind: "connected",
-			target: "first"
-		) != nil)
-		#expect(config.find(
-			source: "audio",
-			kind: "disconnected",
-			target: "first"
-		) != nil)
-		#expect(config.find(
+			commands: ["echo 1"],
+			target: "first",
+			timeout: 30.0,
+			group: "common"
+		)) == true)
+
+		#expect(actions.contains(action: .init(
 			source: "audio",
 			kind: "connected",
-			target: "second"
-		) != nil)
-		#expect(config.find(
+			commands: ["echo 1"],
+			target: "second",
+			timeout: 30.0,
+			group: "common"
+		)) == true)
+
+		#expect(actions.contains(action: .init(
 			source: "audio",
 			kind: "disconnected",
-			target: "second"
-		) != nil)
+			commands: ["echo 1"],
+			target: "first",
+			timeout: 30.0,
+			group: "common"
+		)) == true)
+
+		#expect(actions.contains(action: .init(
+			source: "audio",
+			kind: "disconnected",
+			commands: ["echo 1"],
+			target: "second",
+			timeout: 30.0,
+			group: "common"
+		)) == true)
 	}
 }

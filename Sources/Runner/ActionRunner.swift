@@ -2,12 +2,12 @@ import Foundation
 import Shellac
 
 class ActionRunner: EventListener {
-    let config: Config
+    let handler: ConfigHandler
     var queues: [String: ActionQueue] = [:]
 
-    init(with config: Config) {
-        self.config = config
-        for (name, group) in config.groups {
+    init(with handler: ConfigHandler) {
+        self.handler = handler
+        for (name, group) in handler.groupMap {
             queues[name] = ActionQueue(forGroup: name, after: group.debounce)
         }
     }
@@ -21,7 +21,7 @@ class ActionRunner: EventListener {
     }
 
     func handle(_ event: Event) {
-        guard let action = config.find(
+        guard let action = handler.findAction(
             source: event.source,
             kind: event.kind,
             target: event.target

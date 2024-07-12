@@ -1,0 +1,7 @@
+actions:
+  - on: app:activated
+    with: com.google.Chrome
+    run: echo 1
+  - on: app:activated
+    with: com.microsoft.VSCode
+    run: echo 2
