@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./assets/logo.svg" alt="Run if" />
+    <img src="./assets/logo.svg" alt="Run On logo" />
 </p>
 
 [![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
@@ -10,7 +10,7 @@ RunOn is a utility for running commands on macOS system events.
 
 ### Build from source
 
-Building the project is currently only possible on macOS. Swift 5.9 is required for the build.
+Building the project is currently only possible on macOS. Swift 5.10 is required for the build.
 
 ```sh
 # Build the project from source code
