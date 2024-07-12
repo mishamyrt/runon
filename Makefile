@@ -46,15 +46,17 @@ test: generate ## run tests
 	swift test
 
 .PHONY: setup
-setup:
+setup: ## download dependencies
 	swift package resolve
 
 .PHONY: release
-publish:
+publish: # release a new version
 	git tag "v${VERSION}"
 	git chglog -o CHANGELOG.md
+	git tag -d "v${VERSION}"
 	git add Makefile
 	git add CHANGELOG.md
 	git commit -m "chore: release v${VERSION}"
+	git tag "v${VERSION}"
 	git push
 	git push --tags
