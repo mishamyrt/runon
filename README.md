@@ -2,7 +2,7 @@
     <img src="./assets/logo.svg" alt="RunOn logo" />
 </p>
 
-[![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
+[![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml) [![Version](https://img.shields.io/github/v/tag/mishamyrt/runon?sort=semver)](https://github.com/mishamyrt/nuga-lib/tags)
 
 RunOn is a utility for running commands on macOS system events.
 
