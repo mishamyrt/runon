@@ -101,7 +101,12 @@ struct Config {
 		var actionMap = ActionMap()
 		var groupMap: GroupMap = [kDefaultGroup: ActionGroup(debounce: 0)]
         for group in userGroups {
-            let interval = try TimeInterval(fromTimeString: group.debounce ?? "0s")
+			let interval: TimeInterval
+			if let debounce = group.debounce {
+				interval = try TimeInterval(fromTimeString: debounce)
+			} else {
+				interval = 0
+			}
             groupMap[group.name] = ActionGroup(debounce: interval)
         }
 
