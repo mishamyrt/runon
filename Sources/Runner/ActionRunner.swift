@@ -26,7 +26,7 @@ class ActionRunner: EventListener {
             kind: event.kind,
             target: event.target
         ) else {
-            Logger.debug("handler not found")
+            logger.debug("handler not found")
             return
         }
         queues[action.group]?.run(action)

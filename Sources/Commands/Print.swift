@@ -11,9 +11,9 @@ extension RunOn {
             )
 
         mutating func run() throws {
-            kLoggerVerbose = true
+			logger.setLevel(.debug)
             let observer = EventObserver(sources)
-            Logger.info("printing all supported events")
+            logger.info("printing all supported events")
             observer.runLoop()
         }
     }

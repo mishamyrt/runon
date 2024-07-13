@@ -17,13 +17,13 @@ class ActionQueue {
             return
         }
         if isRunning {
-            Logger.info("debounced action \(formatMessage(action))")
+            logger.info("debounced action \(formatMessage(action))")
             return
         }
         isRunning = true
         self.runAction(action)
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceInterval) {
-            Logger.debug("unlock \(self.name.magenta)")
+            logger.debug("unlock \(self.name.magenta)")
             self.isRunning = false
         }
     }
@@ -38,20 +38,20 @@ class ActionQueue {
 
     private func runAction(_ action: Action) {
         do {
-            Logger.info("running \(formatMessage(action)) action")
+            logger.info("running \(formatMessage(action)) action")
             let output = try shell(with: action.commands, timeout: action.timeout)
-            Logger.info("command successfully finished".green)
+            logger.info("command successfully finished".green)
             if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Logger.debug("output:\n\(output)")
+                logger.debug("output:\n\(output)")
             }
         } catch {
             if let error = error as? ShellError {
-                Logger.error("The process exited with a non-zero status code: \(error.code).")
+                logger.error("The process exited with a non-zero status code: \(error.code).")
                 if !error.error.isEmpty {
-                    Logger.error("Message: \(error.error)")
+                    logger.error("Message: \(error.error)")
                 }
             } else {
-                Logger.error(String(describing: error))
+                logger.error(String(describing: error))
             }
         }
     }

@@ -2,6 +2,7 @@ import ArgumentParser
 import ServiceManagement
 
 let kAppId = "co.myrt.runon"
+var logger = Logger(level: .error)
 
 @main
 struct RunOn: ParsableCommand {

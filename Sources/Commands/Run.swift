@@ -22,7 +22,7 @@ extension RunOn {
         }
 
         mutating func run() throws {
-            kLoggerVerbose = verbose
+			logger.setLevel(verbose ? .debug : .error)
             let config = try Config(fromContentsOf: configUrl)
 			let handler = ConfigHandler(with: config)
             let activeSources = sources.filter { source in
@@ -32,7 +32,7 @@ extension RunOn {
             let observer = EventObserver(activeSources)
             observer.listener = runner
             let sourceNames = activeSources.map { source in source.name.cyan }
-            Logger.info("observed sources: \(sourceNames.joined(separator: ", "))")
+            logger.info("observed sources: \(sourceNames.joined(separator: ", "))")
             observer.runLoop()
         }
     }
