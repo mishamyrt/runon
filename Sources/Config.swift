@@ -30,20 +30,6 @@ struct Action {
     let group: String
 }
 
-extension [Action] {
-	func contains(action needle: Action) -> Bool {
-		self.contains { action in
-			action.source == needle.source &&
-			action.kind == needle.kind &&
-			action.target == needle.target &&
-			action.commands == needle.commands &&
-			action.timeout == needle.timeout &&
-			action.group == needle.group &&
-			action.timeout == needle.timeout
-		}
-	}
-}
-
 struct ActionGroup {
     let debounce: TimeInterval
 }
