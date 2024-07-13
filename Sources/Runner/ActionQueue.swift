@@ -6,7 +6,7 @@ class ActionQueue {
     var isRunning = false
     var interval: TimeInterval?
 
-    init(forGroup name: String, after interval: TimeInterval?) {
+    init(name: String, interval: TimeInterval? = nil) {
         self.name = name
         self.interval = interval
     }
@@ -17,23 +17,24 @@ class ActionQueue {
             return
         }
         if isRunning {
-            logger.info("debounced action \(formatMessage(action))")
+            logger.debug("debounced action \(formatMessage(action))")
             return
         }
         isRunning = true
+		logger.debug("lock \(self.name.magenta) queue")
         self.runAction(action)
         DispatchQueue.main.asyncAfter(deadline: .now() + debounceInterval) {
-            logger.debug("unlock \(self.name.magenta)")
+            logger.debug("unlock \(self.name.magenta) queue")
             self.isRunning = false
         }
     }
 
     private func formatMessage(_ action: Action) -> String {
-        let result = "\(action.source.cyan):\(action.kind.blue)"
+        let event = "\(action.source.cyan):\(action.kind.blue)"
         guard let target = action.target else {
-            return result
+            return event
         }
-        return "on \(name.magenta) - \(result) with \(target.yellow)"
+        return "on \(name.magenta) - \(event) with \(target.yellow)"
     }
 
     private func runAction(_ action: Action) {
