@@ -98,7 +98,7 @@ struct Config {
 	/// Parse the config file and return `actions` and `groups`
     static func parseDTO(_ config: ConfigDTO) throws -> (ActionMap, GroupMap) {
         let userGroups = config.groups ?? []
-		var actionMap = ActionMap()
+		var actionMap: ActionMap = [:]
 		var groupMap: GroupMap = [kDefaultGroup: ActionGroup(debounce: 0)]
         for group in userGroups {
 			let interval: TimeInterval
@@ -169,22 +169,23 @@ struct Config {
 	/// Parse the config and return an array of Actions
     static func parseActions(_ spec: ActionDTO) throws -> [Action] {
         let conditions = parseMultiline(spec.on)
-		var actions: [Action] = []
-		var targets: [String] = []
-		if let with = spec.with {
-			targets += parseMultiline(with)
+		let targets: [String]
+		if let target = spec.with {
+			targets = parseMultiline(target)
+		} else {
+			targets = []
 		}
-		for condition in conditions {
-			if targets.isEmpty {
-				actions.append(
-					try parseConditionAction(condition, nil, spec)
-				)
-				continue
+
+		let actions: [Action]
+		if targets.isEmpty {
+			actions = try conditions.map { condition in
+				try parseConditionAction(condition, nil, spec)
 			}
-			for target in targets {
-				actions.append(
+		} else {
+			actions = try conditions.flatMap { condition in
+				try targets.map { target in
 					try parseConditionAction(condition, target, spec)
-				)
+				}
 			}
 		}
 		return actions
