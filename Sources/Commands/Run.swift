@@ -6,11 +6,11 @@ extension RunOn {
         static var configuration =
             CommandConfiguration(abstract: "Start event observer.")
 
-        @Flag(
+        @Option(
             name: .shortAndLong,
-            help: "Print more information for debugging."
+            help: "Logging level."
         )
-        var verbose = false
+        var log = LogLevel.error
         @Option(
             name: [.customLong("config"), .customShort("c")],
             help: "Configuration file path."
@@ -22,7 +22,7 @@ extension RunOn {
         }
 
         mutating func run() throws {
-			logger.setLevel(verbose ? .debug : .error)
+			logger.setLevel(log)
             let config = try Config(fromContentsOf: configUrl)
 			let handler = ConfigHandler(with: config)
             let activeSources = sources.filter { source in

@@ -1,3 +1,5 @@
+import ArgumentParser
+
 /// Logger log level
 enum LogLevel {
 	case debug
@@ -7,7 +9,7 @@ enum LogLevel {
 	case warning
 }
 
-extension LogLevel: Comparable, Equatable {
+extension LogLevel: Comparable, Equatable, ExpressibleByArgument {
 	/// Return log level as integer
 	var integerValue: Int {
 		switch self {
@@ -25,6 +27,28 @@ extension LogLevel: Comparable, Equatable {
 
 		case .debug:
 			return 4
+		}
+	}
+
+	init?(argument: String) {
+		switch argument.lowercased() {
+		case "debug":
+			self = .debug
+
+		case "disabled":
+			self = .disabled
+
+		case "error":
+			self = .error
+
+		case "info":
+			self = .info
+
+		case "warning":
+			self = .warning
+
+		default:
+			return nil
 		}
 	}
 
