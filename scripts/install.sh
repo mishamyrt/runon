@@ -58,7 +58,7 @@ install() {
 	get_dist
 	grey "Installing..."
 	install_dist
-	green "Success"
+	green "Successfully installed $(runon-daemon --version)"
 }
 
 install
