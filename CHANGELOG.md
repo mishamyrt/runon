@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog][],
 and this project adheres to [Semantic Versioning][].
 
 
+## [v1.0.4](https://github.com/mishamyrt/runon/releases/tag/v1.0.4) - 2024-07-13
+### Features
+- set log level from arguments
+- dim log timestamp
+
+### Refactoring
+- clean up action runner
+- isolate logger
+- split config and handling
+
+### Testing
+- add logger tests
+
+
 ## [v1.0.3](https://github.com/mishamyrt/runon/releases/tag/v1.0.3) - 2024-07-12
 ### Bug Fixes
 - update changelog before release commit
@@ -84,7 +98,8 @@ and this project adheres to [Semantic Versioning][].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/mishamyrt/runon/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/mishamyrt/runon/compare/v1.0.4...HEAD
+[v1.0.4]: https://github.com/mishamyrt/runon/compare/v1.0.3...v1.0.4
 [v1.0.3]: https://github.com/mishamyrt/runon/compare/v1.0.2...v1.0.3
 [v1.0.2]: https://github.com/mishamyrt/runon/compare/v1.0.1...v1.0.2
 [v1.0.1]: https://github.com/mishamyrt/runon/compare/v1.0.0...v1.0.1
