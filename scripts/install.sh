@@ -35,21 +35,6 @@ green() {
     colored_print "$1" "32"
 }
 
-# Function to color text in yellow
-yellow() {
-    colored_print "$1" "33"
-}
-
-# Function to color text in blue
-blue() {
-    colored_print "$1" "34"
-}
-
-# Function to color text in magenta
-magenta() {
-    colored_print "$1" "35"
-}
-
 get_dist() {
 	curl -sL "$DIST_URL" -o "$DIST_FILE"
 	unzip "$DIST_FILE" -d "$TEMP_DIR" > /dev/null
@@ -77,4 +62,3 @@ install() {
 }
 
 install
-
