@@ -7,7 +7,11 @@ struct Logger {
 	var out: UnsafeMutablePointer<FILE>
 	var showTimestamp: Bool
 
-	init(level: LogLevel = .error, out: UnsafeMutablePointer<FILE> = stdout, showTimestamp: Bool = true) {
+	init(
+		level: LogLevel = .error,
+		out: UnsafeMutablePointer<FILE> = stdout,
+		showTimestamp: Bool = true
+	) {
 		self.level = level
 		self.out = out
 		self.showTimestamp = showTimestamp
@@ -22,7 +26,7 @@ struct Logger {
     func print(_ message: String) {
 		var line = ""
 		if showTimestamp {
-			line += timestamp() + " "
+			line += timestamp().dim + " "
 		}
 		line += message
 		fputs(line + "\n", out)
