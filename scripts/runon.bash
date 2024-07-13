@@ -3,8 +3,10 @@
 # it is not possible to make a fork to create a Daemon process.
 # I didn't want to make an XPC service or something similar,
 # so made a separate script that manages the Daemon process.
-# 
+#
 # A search query for those interested in the details: objc_initializeAfterForkError
+
+set -e
 
 readonly CONFIG_DIR="$HOME/.config/runon"
 readonly CONFIG_FILE="$CONFIG_DIR/config.yaml"
@@ -13,127 +15,122 @@ readonly PID_FILE="/tmp/runon.pid"
 readonly LOG_FILE="/tmp/runon.log"
 
 config::edit() {
-    mkdir -p "$CONFIG_DIR"
-    ${EDITOR:=vi} "$CONFIG_FILE"
+  mkdir -p "$CONFIG_DIR"
+  ${EDITOR:=vi} "$CONFIG_FILE"
 }
 
 config::path() {
-    echo "$CONFIG_FILE"
+  echo "$CONFIG_FILE"
 }
 
 app::run() {
-    $APP_PATH run "${@}"
+  $APP_PATH run "${@}"
 }
 
 app::print() {
-    $APP_PATH print
+  $APP_PATH print
 }
 
 app::autostart() {
-    $APP_PATH autostart "${@}"
+  $APP_PATH autostart "${@}"
 }
 
 daemon::is_running() {
-    if [ -f $PID_FILE ]; then
-        kill -0 "$(cat $PID_FILE)" &> /dev/null
-    else
-        false
-    fi
+  if [ -f $PID_FILE ]; then
+    kill -0 "$(cat $PID_FILE)" &> /dev/null
+  else
+    false
+  fi
 }
 
 daemon::start() {
-    if daemon::is_running; then
-        echo "daemon is already running"
-    else
-        # shellcheck disable=SC2094
-        nohup script -q $LOG_FILE "$APP_PATH" "${@}" > $LOG_FILE &
-        rm -f "$PID_FILE"
-        echo $! > $PID_FILE
-        echo "daemon started"
-    fi
+  if daemon::is_running; then
+    echo "daemon is already running"
+  else
+    # shellcheck disable=SC2094
+    nohup script -q $LOG_FILE "$APP_PATH" "${@}" > $LOG_FILE &
+    rm -f "$PID_FILE"
+    echo $! > $PID_FILE
+    echo "daemon started"
+  fi
 }
 
 daemon::stop() {
-    if daemon::is_running; then
-        kill -9 "$(cat $PID_FILE)"
-        rm $PID_FILE
-        echo "daemon stopped"
-    else
-        echo "daemon is not yet running "
-    fi
+  if daemon::is_running; then
+    kill -9 "$(cat $PID_FILE)"
+    rm $PID_FILE
+    echo "daemon stopped"
+  else
+    echo "daemon is not yet running "
+  fi
 }
 
 daemon::restart() {
-    daemon::stop
-    daemon::start
+  daemon::stop
+  daemon::start
 }
 
 daemon::status() {
-    if daemon::is_running; then
-        echo "runon is running"
-    else
-        echo "runon is not running"
-    fi
+  if daemon::is_running; then
+    echo "runon is running"
+  else
+    echo "runon is not running"
+  fi
 }
 
 daemon::log() {
-    if [ ! -f $LOG_FILE ]; then
-        echo "Log file is not found"
-    else
-        tail -f "$LOG_FILE"
-    fi
+  if [ ! -f $LOG_FILE ]; then
+    echo "Log file is not found"
+  else
+    tail -f "$LOG_FILE"
+  fi
 }
 
 display_help() {
-   echo "A utility for automating actions on system events."
-   echo
-   echo "Usage: runon <subcommand>"
-   echo
-   echo "Subcommands:"
-   echo "  run           Runs the application in the current process without daemonization."
-   echo "  print         Starts the observer in a special mode that prints all supported events."
-   echo "  autostart     Enables, disables, or prints the autostart status."
-   echo "  start         Starts the application in the background."
-   echo "  stop          Stops the background application."
-   echo "  restart       Restarts background application."
-   echo "  status        Prints the status of the application."
-   echo "  log           Starts the application log viewer in follow mode."
-   echo "  config        Opens editing of the configuration file."
-   echo "  config-path   Prints the absolute path of the configuration file."
-   echo
+  echo "OVERVIEW: A utility for automating actions on system events."
+	echo
+	echo "VERSION: $(runon-daemon --version)"
+  echo
+	echo "USAGE: runon <subcommand>"
+	echo
+	echo "SUBCOMMANDS:"
+	awk 'BEGIN { FS = ").*?## " }
+    /^[[:space:]]+[a-zA-Z_-]+\) ##/ {
+		printf "\033[33m%-20s\033[0m %s\n", $1, $2;
+	}' "$0"
 }
 
 case "$1" in
-    run)
-        app::run "${@:2}"
-        ;;
-    print)
-        app::print
-        ;;
-    autostart)
-        app::autostart "${@:2}"
-        ;;
-    start)
-        daemon::start "${@:2}"
-        ;;
-    stop)
-        daemon::stop
-        ;;
-    restart)
-        daemon::restart
-        ;;
-    status)
-        daemon::status
-        ;;
-    log)
-        daemon::log
-        ;;
-    config)
-        config::edit
-        ;;
-    config-path)
-        config::path
-        ;;
-    *)
-        display_help
+  run) ## Runs the application in the current process without daemonization.
+    app::run "${@:2}"
+    ;;
+  print) ## Starts the observer in a special mode that prints all supported events.
+    app::print
+    ;;
+  autostart) ## Enables, disables, or prints the autostart status.
+    app::autostart "${@:2}"
+    ;;
+  start) ## Starts the app in the background.
+    daemon::start "${@:2}"
+    ;;
+  stop) ## Stops the background app.
+    daemon::stop
+    ;;
+  restart) ## Restarts background app.
+    daemon::restart
+    ;;
+  status) ## Prints the status of the app.
+    daemon::status
+    ;;
+  log) ## Starts the app log viewer in follow mode.
+    daemon::log
+    ;;
+  config) ## Opens editing of the configuration file.
+    config::edit
+    ;;
+  config-path) ## Prints the absolute path of the configuration file.
+    config::path
+    ;;
+  *)
+    display_help
 esac

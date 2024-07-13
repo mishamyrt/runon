@@ -24,15 +24,15 @@ SCRIPT_PATH="$INSTALLATION_DIR/$SCRIPT_FILE_NAME"
 DAEMON_PATH="$INSTALLATION_DIR/$DAEMON_FILE_NAME"
 
 colored_print() {
-    echo -e "\033[${2}m${1}\033[0m"
+  echo -e "\033[${2}m${1}\033[0m"
 }
 
 grey() {
-    colored_print "$1" "30"
+  colored_print "$1" "30"
 }
 
 green() {
-    colored_print "$1" "32"
+  colored_print "$1" "32"
 }
 
 get_dist() {
