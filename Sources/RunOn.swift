@@ -13,7 +13,7 @@ struct RunOn: ParsableCommand {
     ]
 
     static var configuration = CommandConfiguration(
-        commandName: "runon-daemon",
+        commandName: "runon",
         abstract: "A utility for automating actions on system events.",
         discussion: "VERSION: \(kAppVersion) (\(kBuildCommit))",
         version: kAppVersion,
