@@ -1,4 +1,5 @@
 import Testing
+import Darwin.C
 @testable import runon
 
 func expectEqualActions(_ a: Action?, _ b: Action?) {
@@ -15,4 +16,44 @@ func expectEqualActions(_ a: Action?, _ b: Action?) {
 	#expect(a.target == b.target)
 	#expect(a.timeout == b.timeout)
 	#expect(a.group == b.group)
+}
+
+class CStream {
+    var size: UnsafeMutablePointer<size_t>?
+    var handle: UnsafeMutablePointer<FILE>!
+	var buffer: UnsafeMutablePointer<Int8>?
+
+	var content: String { read() }
+	var lines: [String] { content.components(separatedBy: "\n") }
+	var meaningfulLines: [String] { lines.filter { !$0.isEmpty } }
+	var isEmpty: Bool { content.isEmpty }
+
+	init() {
+		allocate()
+	}
+
+	deinit {
+		deallocate()
+	}
+
+	func clear() {
+		deallocate()
+		allocate()
+	}
+
+	private func read() -> String {
+  		String(cString: buffer!)
+	}
+
+	private func allocate() {
+		buffer = UnsafeMutablePointer<Int8>.allocate(capacity: 1)
+        size = UnsafeMutablePointer<size_t>.allocate(capacity: 1)
+        handle = open_memstream(&buffer, size)
+	}
+
+	private func deallocate() {
+		fclose(handle)
+        buffer?.deallocate()
+        size?.deallocate()
+	}
 }

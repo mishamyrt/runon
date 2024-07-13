@@ -5,10 +5,12 @@ import Rainbow
 struct Logger {
 	var level: LogLevel
 	var out: UnsafeMutablePointer<FILE>
+	var showTimestamp: Bool
 
-	init(level: LogLevel, out: UnsafeMutablePointer<FILE> = stdout) {
+	init(level: LogLevel = .error, out: UnsafeMutablePointer<FILE> = stdout, showTimestamp: Bool = true) {
 		self.level = level
 		self.out = out
+		self.showTimestamp = showTimestamp
 	}
 
 	mutating func setLevel(_ level: LogLevel) {
@@ -18,10 +20,14 @@ struct Logger {
 	/// Print message to stdout.
 	/// This function is uses low level API to print correct output colors.
     func print(_ message: String) {
-        let timestamp = now().dim
-        fputs("\(timestamp) \(message)\n", stdout)
-        fflush(out)
-    }
+		var line = ""
+		if showTimestamp {
+			line += timestamp() + " "
+		}
+		line += message
+		fputs(line + "\n", out)
+		fflush(out)
+	}
 
 	/// Print information message to stdout.
     func info(_ message: String) {
@@ -51,7 +57,7 @@ struct Logger {
 		}
 	}
 
-	private func now() -> String {
+	private func timestamp() -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         return dateFormatter.string(from: Date())
