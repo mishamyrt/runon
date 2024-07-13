@@ -10,9 +10,13 @@ RunOn is a utility for running commands on macOS system events.
 
 ### Script
 
+The easiest way is to use an installation script. To install using the script, run the command:
+
 ```sh
 curl -skSfL https://raw.githubusercontent.com/mishamyrt/runon/main/scripts/install.sh | bash
 ```
+
+This command will download and run the [installation script](./scripts/install.sh).
 
 ### Build from source
 
