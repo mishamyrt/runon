@@ -9,7 +9,7 @@ enum CStreamError: Error {
 /// CStream represents unix writable memory stream.
 /// It's meant to be used in tests to simulate stdout.
 class CStream {
-    let handle: UnsafeMutablePointer<FILE>
+    let output: LogOutput
 	private var sizePtr: UnsafeMutablePointer<size_t>
 	private var bufferPtr: UnsafeMutablePointer<CChar>!
 	private var head: Int = 0
@@ -32,12 +32,12 @@ class CStream {
 	init() throws {
 		bufferPtr = UnsafeMutablePointer<CChar>.allocate(capacity: 1)
 		sizePtr = UnsafeMutablePointer<size_t>.allocate(capacity: 1)
-        let handle = open_memstream(&bufferPtr, sizePtr)
+        let memStream = open_memstream(&bufferPtr, sizePtr)
 
-		guard let handle = handle else {
+		guard let memStream = memStream else {
 			throw CStreamError.notOpened
 		}
-		self.handle = handle
+		self.output = LogOutput(stream: memStream)
 	}
 
 	/// Clear buffer.
@@ -47,7 +47,7 @@ class CStream {
 	}
 
 	deinit {
-		fclose(handle)
+		fclose(output.handle)
         bufferPtr.deallocate()
         sizePtr.deallocate()
 	}

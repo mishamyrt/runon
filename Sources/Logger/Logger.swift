@@ -4,8 +4,6 @@ import Rainbow
 
 struct Logger {
 	var prefix: String?
-	private var out: UnsafeMutablePointer<FILE>
-
 	var config: LogConfig
 	var level: LogLevel {
 		get { config.level }
@@ -15,21 +13,20 @@ struct Logger {
 		get { config.showTimestamp }
 		set { config.showTimestamp = newValue }
 	}
+	var out: LogOutput {
+		get { config.out }
+		set { config.out = newValue }
+	}
 
 	init(
 		config: LogConfig? = nil,
-		out: UnsafeMutablePointer<FILE> = stdout,
 		prefix: String? = nil
 	) {
 		if let config = config {
 			self.config = config
 		} else {
-			self.config = LogConfig(
-				level: .error,
-				showTimestamp: true
-			)
+			self.config = LogConfig()
 		}
-		self.out = out
 		self.prefix = prefix
 	}
 
@@ -43,7 +40,6 @@ struct Logger {
 
 		return Self(
 			config: config,
-			out: out,
 			prefix: childPrefix
 		)
 	}
@@ -59,8 +55,8 @@ struct Logger {
 			line += prefix.dim + " "
 		}
 		line += message
-		fputs(line + "\n", out)
-		fflush(out)
+		fputs(line + "\n", out.handle)
+		fflush(out.handle)
 	}
 
 	/// Print information message to stdout.

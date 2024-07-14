@@ -20,48 +20,50 @@ struct LoggerSuite {
 
 	@Test("check logger print")
 	func testPrint() throws {
-		let out = try CStream()
+		let stream = try CStream()
 		let logger = Logger(
-			config: .init(showTimestamp: false),
-			out: out.handle
+			config: .init(
+				showTimestamp: false,
+				out: stream.output
+			)
 		)
 		logger.print("test")
-		#expect(out.content == "test")
+		#expect(stream.content == "test")
 	}
 
 	@Test("check logger print levels")
 	func testPrintLevels() throws {
-		let out = try CStream()
+		let stream = try CStream()
 		var logger = Logger(
 			config: .init(
 				level: .error,
-				showTimestamp: false
-			),
-			out: out.handle
+				showTimestamp: false,
+				out: stream.output
+			)
 		)
 		logger.warning("should not be printed")
 		logger.error("should be printed")
-		#expect(out.lines.count == 1)
+		#expect(stream.lines.count == 1)
 		logger.level = .info
 		logger.debug("should not be printed")
 		logger.info("should be printed")
 		logger.warning("should be printed")
-		#expect(out.lines.count == 3)
+		#expect(stream.lines.count == 3)
 		logger.level = .debug
 		logger.debug("should be printed")
 		logger.info("should be printed")
 		logger.warning("should be printed")
-		#expect(out.lines.count == 6)
+		#expect(stream.lines.count == 6)
 	}
 
 	@Test("check logger prints timestamp")
 	func testPrintsTimestamp() throws {
-		let out = try CStream()
+		let stream = try CStream()
 		let logger = Logger(
-			out: out.handle
+			config: .init(out: stream.output)
 		)
 		logger.print("test")
-		let parts = out.lines[0].components(separatedBy: " ")
+		let parts = stream.lines[0].components(separatedBy: " ")
 		#expect(parts[0].components(separatedBy: "-").count == 3)
 		#expect(parts[1].components(separatedBy: ":") .count == 3)
 		#expect(parts[2] == "test")
@@ -69,21 +71,23 @@ struct LoggerSuite {
 
 	@Test("check logger child")
 	func testChild() throws {
-		let out = try CStream()
+		let stream = try CStream()
 		var logger = Logger(
-			config: .init(showTimestamp: false),
-			out: out.handle
+			config: .init(
+				showTimestamp: false,
+				out: stream.output
+			)
 		)
 		var fooLogger = logger.child(prefix: "foo")
 		#expect(fooLogger.prefix == "foo")
 
 		fooLogger.print("test")
-		#expect(out.content == "foo test")
-		out.clear()
+		#expect(stream.content == "foo test")
+		stream.clear()
 
 		let barLogger = fooLogger.child(prefix: "bar")
 		barLogger.print("test")
-		#expect(out.content == "foo bar test")
+		#expect(stream.content == "foo bar test")
 	}
 
 	@Test("check logger child level")

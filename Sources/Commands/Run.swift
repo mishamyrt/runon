@@ -7,22 +7,31 @@ extension RunOn {
             CommandConfiguration(abstract: "Start event observer.")
 
         @Option(
-            name: .shortAndLong,
+            name: [.customLong("log"), .customShort("l")],
             help: "Logging level."
         )
-        var log = LogLevel.error
+        var logLevel = LogLevel.error
         @Option(
             name: [.customLong("config"), .customShort("c")],
             help: "Configuration file path."
         )
         var configPath: String?
 
+		@Option(
+            name: [.customLong("output"), .customShort("o")],
+            help: "."
+        )
+        var output: String = "stdout"
+
         var configUrl: URL? {
             configPath.map { URL(filePath: $0) }
         }
 
         mutating func run() throws {
-			logger.config.level = log
+			logger.config.level = logLevel
+			if output != "stdout" {
+				logger.out = LogOutput(file: output)
+			}
             let config = try Config(fromContentsOf: configUrl)
 			let handler = ConfigHandler(with: config)
             let activeSources = sources.filter { source in
