@@ -1,42 +1,6 @@
 import Foundation
 import Yams
 
-struct ActionGroupDTO: Codable {
-    let name: String
-    let debounce: String?
-}
-
-struct ActionDTO: Codable {
-    // swiftlint:disable identifier_name
-    let on: String
-    // swiftlint:enable identifier_name
-    let with: String?
-    let run: String
-    let group: String?
-    let timeout: String?
-}
-
-struct ConfigDTO: Codable {
-    let actions: [ActionDTO]
-    let groups: [ActionGroupDTO]?
-}
-
-struct Action {
-    let source: String
-    let kind: String
-    let commands: [String]
-    let target: String?
-    let timeout: TimeInterval
-    let group: String
-}
-
-struct ActionGroup {
-    let debounce: TimeInterval
-}
-
-typealias ActionMap = [String: [Action]]
-typealias GroupMap = [String: ActionGroup]
-
 enum ConfigError: Error {
     case invalidFormat(String)
     case invalidGroup(String)
