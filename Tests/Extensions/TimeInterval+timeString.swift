@@ -1,22 +1,23 @@
-import Testing
 import Foundation
 @testable import runon
+import Testing
 
-@Suite struct TimeIntervalSuite {
+@Suite
+struct TimeIntervalSuite {
     @Test("check single units parsing")
     func testSingle() throws {
         #expect(try TimeInterval(fromTimeString: "10s") == 10)
         #expect(try TimeInterval(fromTimeString: "10ms") == 0.01)
         #expect(try TimeInterval(fromTimeString: "10m") == 600.0)
-        #expect(try TimeInterval(fromTimeString: "10h") == 36000.0)
-        #expect(try TimeInterval(fromTimeString: "10d") == 864000.0)
+        #expect(try TimeInterval(fromTimeString: "10h") == 36_000.0)
+        #expect(try TimeInterval(fromTimeString: "10d") == 864_000.0)
     }
 
     @Test("check units combining")
     func testMultiple() throws {
         #expect(try TimeInterval(fromTimeString: "10s10ms") == 10.01)
         #expect(try TimeInterval(fromTimeString: "10m10s") == 610.0)
-        #expect(try TimeInterval(fromTimeString: "10h10s5ms") == 36010.005)
+        #expect(try TimeInterval(fromTimeString: "10h10s5ms") == 36_010.005)
     }
 
     @Test("check duplicated units")

@@ -1,8 +1,10 @@
-import Testing
 import Foundation
 @testable import runon
+import Testing
 
-@Suite struct ConfigSuite {
+// swiftlint:disable force_unwrapping
+@Suite
+struct ConfigSuite {
     @Test("check config creation")
     func testBasicConstructor() throws {
         let config = try Config(from: .init(actions: [
@@ -19,8 +21,8 @@ import Foundation
 				run: "echo 1",
 				group: nil,
 				timeout: nil
-			),
-		], groups: []))
+			)
+        ], groups: []))
         #expect(config.actionMap.count == 2)
     }
 
@@ -29,13 +31,13 @@ import Foundation
 		let config = try Config(
 			fromContentsOf: URL(filePath: "testdata/basic.yaml")
 		)
-		#expect(config.actionMap.count > 0)
+		#expect(!config.actionMap.isEmpty)
 	}
 
 	@Test("check empty config creation")
 	func testEmpty() throws {
 		let config = try Config(from: .init(actions: [], groups: []))
-		#expect(config.actionMap.count == 0)
+		#expect(config.actionMap.isEmpty)
 	}
 
     @Test("check config parsing")
@@ -56,17 +58,17 @@ import Foundation
                     group: nil,
                     timeout: nil
                 ),
-				.init(
+                .init(
                     on: "screen:disconnected",
-					with: nil,
+                    with: nil,
                     run: "eq-correction -disable",
                     group: nil,
                     timeout: nil
-                ),
+                )
             ],
             groups: [
-				.init(name: "test-group", debounce: nil),
-			]
+				.init(name: "test-group", debounce: nil)
+            ]
         ))
 
 		let actions = config.actionMap
@@ -82,7 +84,7 @@ import Foundation
 		let audioActions = actions["audio"]!
 		let screenActions = actions["screen"]!
 
-		expectEqualActions(audioActions[0], .init(
+		#expect(audioActions[0] == Action(
 			source: "audio",
 			kind: "connected",
 			commands: ["eq-correction -preset work"],
@@ -90,8 +92,7 @@ import Foundation
 			timeout: 5.0,
 			group: "test-group"
 		))
-
-		expectEqualActions(audioActions[1], .init(
+		#expect(audioActions[1] == Action(
 			source: "audio",
 			kind: "connected",
 			commands: ["eq-correction -preset home"],
@@ -99,8 +100,7 @@ import Foundation
 			timeout: 30.0,
 			group: "common"
 		))
-
-		expectEqualActions(screenActions[0], .init(
+		#expect(screenActions[0] == .init(
 			source: "screen",
 			kind: "disconnected",
 			commands: ["eq-correction -disable"],
@@ -120,7 +120,7 @@ import Foundation
 					run: "echo 1",
 					group: nil,
 					timeout: nil
-				),
+				)
 			],
 			groups: nil
 		))
@@ -129,40 +129,46 @@ import Foundation
 
 		#expect(actions.count == 4)
 
-		#expect(actions.contains(action: .init(
-			source: "audio",
-			kind: "connected",
-			commands: ["echo 1"],
-			target: "first",
-			timeout: 30.0,
-			group: "common"
-		)) == true)
-
-		#expect(actions.contains(action: .init(
-			source: "audio",
-			kind: "connected",
-			commands: ["echo 1"],
-			target: "second",
-			timeout: 30.0,
-			group: "common"
-		)) == true)
-
-		#expect(actions.contains(action: .init(
-			source: "audio",
-			kind: "disconnected",
-			commands: ["echo 1"],
-			target: "first",
-			timeout: 30.0,
-			group: "common"
-		)) == true)
-
-		#expect(actions.contains(action: .init(
-			source: "audio",
-			kind: "disconnected",
-			commands: ["echo 1"],
-			target: "second",
-			timeout: 30.0,
-			group: "common"
-		)) == true)
+		#expect(actions.contains { action in
+			action == .init(
+				source: "audio",
+				kind: "connected",
+				commands: ["echo 1"],
+				target: "first",
+				timeout: 30.0,
+				group: "common"
+			)
+		})
+		#expect(actions.contains { action in
+			action == .init(
+				source: "audio",
+				kind: "connected",
+				commands: ["echo 1"],
+				target: "second",
+				timeout: 30.0,
+				group: "common"
+			)
+		})
+		#expect(actions.contains { action in
+			action == .init(
+				source: "audio",
+				kind: "disconnected",
+				commands: ["echo 1"],
+				target: "first",
+				timeout: 30.0,
+				group: "common"
+			)
+		})
+		#expect(actions.contains { action in
+			action == .init(
+				source: "audio",
+				kind: "disconnected",
+				commands: ["echo 1"],
+				target: "second",
+				timeout: 30.0,
+				group: "common"
+			)
+		})
 	}
 }
+// swiftlint:enable force_unwrapping

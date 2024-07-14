@@ -1,13 +1,14 @@
-import Testing
 import Foundation
 @testable import runon
+import Testing
 
-@Suite struct StringDropPrefixSuite {
+@Suite
+struct StringDropPrefixSuite {
     @Test("check prefix dropping")
     func testDropPrefix() throws {
         #expect("kValue".dropPrefix("k") == "Value")
-        #expect("kValue".dropPrefix("kValue") == "")
         #expect("longPrefixValue".dropPrefix("longPrefix") == "Value")
+		#expect("kValue".dropPrefix("kValue").isEmpty)
     }
 
     @Test("check without prefix")

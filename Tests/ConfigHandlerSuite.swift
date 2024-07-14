@@ -1,8 +1,9 @@
-import Testing
 import Foundation
 @testable import runon
+import Testing
 
-@Suite struct ConfigHandlerSuite {
+@Suite
+struct ConfigHandlerSuite {
     @Test("check find action")
     func testFind() throws {
         let config = try Config(from: .init(
@@ -30,15 +31,15 @@ import Foundation
 				)
 			],
 			groups: [
-				.init(name: "test-group", debounce: nil),
+				.init(name: "test-group", debounce: nil)
 			]
 		))
         let handler = ConfigHandler(with: config)
-		expectEqualActions(handler.findAction(
+		#expect(handler.findAction(
 			source: "audio",
 			kind: "connected",
 			target: "Work Speakers"
-		), .init(
+		) == Action(
 			source: "audio",
 			kind: "connected",
 			commands: ["eq-correction -preset work"],
@@ -47,11 +48,11 @@ import Foundation
 			group: "test-group"
 		))
 
-		expectEqualActions(handler.findAction(
+		#expect(handler.findAction(
 			source: "audio",
 			kind: "connected",
 			target: "Home Speakers"
-		), .init(
+		) == Action(
 			source: "audio",
 			kind: "connected",
 			commands: ["eq-correction -preset home"],
@@ -69,24 +70,24 @@ import Foundation
 			group: "common"
 		)
 
-		expectEqualActions(handler.findAction(
+		#expect(handler.findAction(
 			source: "audio",
 			kind: "disconnected",
 			target: "Home Speakers"
-		), disconnectAction)
+		) == disconnectAction)
 
 		// Search with nil target
-		expectEqualActions(handler.findAction(
+		#expect(handler.findAction(
 			source: "audio",
 			kind: "disconnected",
 			target: nil
-		), disconnectAction)
+		) == disconnectAction)
 
-		expectEqualActions(handler.findAction(
+		#expect(handler.findAction(
 			source: "screen",
 			kind: "disconnected",
 			target: nil
-		), nil)
+		) == nil)
     }
 
 	@Test("check action sources")
@@ -128,7 +129,7 @@ import Foundation
 			from: .init(actions: [], groups: nil)
 		))
 
-		#expect(emptyHandler.actionSources.count == 0)
+		#expect(emptyHandler.actionSources.isEmpty)
 	}
 }
 

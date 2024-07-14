@@ -1,5 +1,6 @@
 included:
   - Sources
+  - Tests
 analyzer_rules:
   - unused_declaration
   - unused_import
@@ -19,6 +20,7 @@ disabled_rules:
   - no_magic_numbers
   - required_deinit
   - unused_capture_list
+  - file_name
 
 attributes:
   always_on_line_above:
@@ -31,13 +33,6 @@ identifier_name:
 large_tuple: 3
 number_separator:
   minimum_length: 5
-file_name:
-  excluded:
-    - Exports.swift
-    - GeneratedTests.swift
-    - RuleConfigurationMacros.swift
-    - SwiftSyntax+SwiftLint.swift
-    - TestHelpers.swift
 
 balanced_xctest_lifecycle: &unit_test_configuration
   test_parent_classes:
@@ -46,7 +41,7 @@ balanced_xctest_lifecycle: &unit_test_configuration
 empty_xctest_method: *unit_test_configuration
 single_test_class: *unit_test_configuration
 
-function_body_length: 60
+function_body_length: 100
 type_body_length: 400
 
 custom_rules:
