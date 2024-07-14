@@ -1,12 +1,16 @@
 import ArgumentParser
 import Foundation
 
-let kLoginItem = LoginItem(for: kAppId, arguments: [
-    "/usr/local/bin/runon-daemon",
-    "run",
-    "--config",
-    kDefaultConfigPath
-])
+let kLoginItem = LoginItem(
+	for: kAppId,
+	arguments: [
+		"/usr/local/bin/runon-daemon",
+		"run",
+		"--config",
+		kDefaultConfigPath
+	],
+	keepAlive: true
+)
 
 extension RunOn {
     struct Autostart: ParsableCommand {

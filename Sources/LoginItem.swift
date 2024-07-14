@@ -1,10 +1,13 @@
 import Foundation
 
+let kDevNull = "/dev/null"
+
 struct LoginItem {
     let label: String
     let arguments: [String]
     let standardOutput: String
     let standardError: String
+	let keepAlive: Bool
     var path: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library")
@@ -19,19 +22,21 @@ struct LoginItem {
     init(
         for label: String,
         arguments: [String],
-        standardOutput: String = "/dev/null",
-        standardError: String = "/dev/null"
+        standardOutput: String = kDevNull,
+        standardError: String = kDevNull,
+        keepAlive: Bool = false
     ) {
         self.label = label
         self.arguments = arguments
         self.standardOutput = standardOutput
         self.standardError = standardError
+		self.keepAlive = keepAlive
     }
 
     func write() {
         // swiftlint:disable legacy_objc_type
         let loginItem: NSDictionary = [
-            "KeepAlive": true,
+            "KeepAlive": keepAlive,
             "Label": label,
             "ProgramArguments": arguments,
             "StandardErrorPath": standardError,
