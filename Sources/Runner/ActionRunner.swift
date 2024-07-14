@@ -18,7 +18,6 @@ class ActionRunner: EventListener {
     }
 
     func handle(_ event: Event) {
-		kActionLogger.eventReceived(event)
         guard let action = handler.findAction(
             source: event.source,
             kind: event.kind,

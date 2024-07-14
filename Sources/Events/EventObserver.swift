@@ -13,7 +13,9 @@ class EventObserver: EventListener, EventProvider {
     }
 
     func handle(_ event: Event) {
+		kEventLogger.eventReceived(event)
         guard let listener else {
+			kEventLogger.listenerIsNil()
             return
         }
         listener.handle(event)
@@ -21,9 +23,9 @@ class EventObserver: EventListener, EventProvider {
 
     func subscribeSources() {
         for source in sources {
-            logger.debug("subscribing to \(source.name.cyan)")
             source.subscribe()
         }
+		kEventLogger.sourcesSubscribed(sources)
     }
 
     func runLoop() {

@@ -31,8 +31,6 @@ extension RunOn {
             let runner = ActionRunner(with: handler)
             let observer = EventObserver(activeSources)
             observer.listener = runner
-            let sourceNames = activeSources.map { source in source.name.cyan }
-            logger.info("observed sources: \(sourceNames.joined(separator: ", "))")
             observer.runLoop()
         }
     }

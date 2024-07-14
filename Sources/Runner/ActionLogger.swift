@@ -46,10 +46,6 @@ struct ActionRunnerLogger {
 			self.logger.error(String(describing: error))
 		}
 	}
-
-	func eventReceived(_ event: Event) {
-		self.logger.info("received event \(event.source.cyan):\(event.kind.blue) with \(event.target.yellow)")
-	}
 }
 
 let kActionLogger = ActionRunnerLogger(with: logger.child(prefix: "Runner"))
