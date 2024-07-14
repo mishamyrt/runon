@@ -3,39 +3,47 @@ import Foundation
 import Rainbow
 
 struct Logger {
-	var level: LogLevel
-	var out: UnsafeMutablePointer<FILE>
-	var showTimestamp: Bool
 	var prefix: String?
+	private var out: UnsafeMutablePointer<FILE>
+
+	var config: LogConfig
+	var level: LogLevel {
+		get { config.level }
+		set { config.level = newValue }
+	}
+	var showTimestamp: Bool {
+		get { config.showTimestamp }
+		set { config.showTimestamp = newValue }
+	}
 
 	init(
-		level: LogLevel = .error,
+		config: LogConfig? = nil,
 		out: UnsafeMutablePointer<FILE> = stdout,
-		showTimestamp: Bool = true,
 		prefix: String? = nil
 	) {
-		self.level = level
+		if let config = config {
+			self.config = config
+		} else {
+			self.config = LogConfig(
+				level: .error,
+				showTimestamp: true
+			)
+		}
 		self.out = out
-		self.showTimestamp = showTimestamp
 		self.prefix = prefix
 	}
 
-	mutating func setLevel(_ level: LogLevel) {
-		self.level = level
-	}
-
-	func child(prefix: String) -> Self {
+	mutating func child(prefix: String) -> Self {
 		let childPrefix: String
 		if let currentPrefix = self.prefix {
-			childPrefix = "\(currentPrefix): \(prefix)"
+			childPrefix = "\(currentPrefix) \(prefix)"
 		} else {
 			childPrefix = prefix
 		}
 
 		return Self(
-			level: level,
+			config: config,
 			out: out,
-			showTimestamp: showTimestamp,
 			prefix: childPrefix
 		)
 	}
@@ -48,7 +56,7 @@ struct Logger {
 			line += timestamp().dim + " "
 		}
 		if let prefix = prefix {
-			line += prefix + ": "
+			line += prefix.dim + " "
 		}
 		line += message
 		fputs(line + "\n", out)
@@ -57,7 +65,7 @@ struct Logger {
 
 	/// Print information message to stdout.
     func info(_ message: String) {
-		if level >= LogLevel.info {
+		if level >= .info {
 			self.print(message)
 		}
     }
@@ -71,14 +79,14 @@ struct Logger {
 
 	/// Print warning message to stdout.
     func warning(_ message: String) {
-		if level >= LogLevel.warning {
+		if level >= .warning {
 			self.print(message.yellow)
 		}
 	}
 
 	/// Print error message to stdout.
     func error(_ message: String) {
-		if level >= LogLevel.error {
+		if level >= .error {
 			self.print(message.red)
 		}
 	}

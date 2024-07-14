@@ -22,7 +22,7 @@ extension RunOn {
         }
 
         mutating func run() throws {
-			logger.setLevel(log)
+			logger.config.level = log
             let config = try Config(fromContentsOf: configUrl)
 			let handler = ConfigHandler(with: config)
             let activeSources = sources.filter { source in

@@ -11,7 +11,7 @@ extension RunOn {
             )
 
         mutating func run() throws {
-			logger.setLevel(.debug)
+			logger.level = .debug
             let observer = EventObserver(sources)
             logger.info("printing all supported events")
             observer.runLoop()
