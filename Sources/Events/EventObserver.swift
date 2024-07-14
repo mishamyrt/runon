@@ -3,21 +3,16 @@ import Cocoa
 class EventObserver: EventListener, EventProvider {
     var listener: EventListener?
 
-    var sources: [EventSource] = []
+    let sources: [EventSource]
 
     init(_ sources: [EventSource]) {
+		self.sources = sources
         for var source in sources {
             source.listener = self
         }
-        self.sources = sources
     }
 
     func handle(_ event: Event) {
-        var message = "\(event.source.cyan) emitted \(event.kind.blue) event"
-        if !event.target.isEmpty {
-            message += " with \(event.target.yellow)"
-        }
-        logger.debug(message)
         guard let listener else {
             return
         }

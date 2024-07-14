@@ -1,14 +1,16 @@
 import Foundation
 import Shellac
 
+typealias ActionGroupQueueMap = [String: ActionGroupQueue]
+
 class ActionRunner: EventListener {
     let handler: ConfigHandler
-    var queues: [String: ActionQueue] = [:]
+    var queues: ActionGroupQueueMap = [:]
 
     init(with handler: ConfigHandler) {
         self.handler = handler
         for (name, group) in handler.groupMap {
-            queues[name] = ActionQueue(
+            queues[name] = ActionGroupQueue(
 				name: name,
 				interval: group.debounce
 			)
@@ -16,14 +18,25 @@ class ActionRunner: EventListener {
     }
 
     func handle(_ event: Event) {
+		kActionLogger.eventReceived(event)
         guard let action = handler.findAction(
             source: event.source,
             kind: event.kind,
             target: event.target
         ) else {
-            logger.debug("handler not found")
+            kActionLogger.actionNotFound()
             return
         }
-        queues[action.group]?.run(action)
+		guard let queue = queues[action.group] else {
+			kActionLogger.queueNotFound(action.group)
+			return
+		}
+		do {
+			kActionLogger.actionStarted(action)
+			let output = try queue.run(action)
+			kActionLogger.actionSuccess(output)
+		} catch {
+			kActionLogger.actionFailed(error)
+		}
     }
 }
