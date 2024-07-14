@@ -19,7 +19,11 @@ class CStream {
 		if head >= decoded.count {
 			return ""
 		}
-		return String(decoded.dropLast())
+		return String(
+			decoded
+				.dropFirst(head)
+				.dropLast()
+		)
 	}
 	var lines: [String] { content.components(separatedBy: "\n") }
 	var isEmpty: Bool { content.isEmpty }
