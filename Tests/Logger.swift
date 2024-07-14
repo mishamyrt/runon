@@ -64,4 +64,23 @@ struct LoggerSuite {
 		#expect(parts[1].components(separatedBy: ":") .count == 3)
 		#expect(parts[2] == "test")
 	}
+
+	@Test("check logger child")
+	func testChild() throws {
+		let out = try CStream()
+		let logger = Logger(
+			out: out.handle,
+			showTimestamp: false
+		)
+		let fooLogger = logger.child(prefix: "foo")
+		#expect(fooLogger.prefix == "foo")
+
+		fooLogger.print("test")
+		#expect(out.content == "foo: test")
+		out.clear()
+
+		let barLogger = fooLogger.child(prefix: "bar")
+		barLogger.print("test")
+		#expect(out.content == "foo: bar: test")
+	}
 }

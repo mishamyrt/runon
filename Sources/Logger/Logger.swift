@@ -6,19 +6,38 @@ struct Logger {
 	var level: LogLevel
 	var out: UnsafeMutablePointer<FILE>
 	var showTimestamp: Bool
+	var prefix: String?
 
 	init(
 		level: LogLevel = .error,
 		out: UnsafeMutablePointer<FILE> = stdout,
-		showTimestamp: Bool = true
+		showTimestamp: Bool = true,
+		prefix: String? = nil
 	) {
 		self.level = level
 		self.out = out
 		self.showTimestamp = showTimestamp
+		self.prefix = prefix
 	}
 
 	mutating func setLevel(_ level: LogLevel) {
 		self.level = level
+	}
+
+	func child(prefix: String) -> Self {
+		let childPrefix: String
+		if let currentPrefix = self.prefix {
+			childPrefix = "\(currentPrefix): \(prefix)"
+		} else {
+			childPrefix = prefix
+		}
+
+		return Self(
+			level: level,
+			out: out,
+			showTimestamp: showTimestamp,
+			prefix: childPrefix
+		)
 	}
 
 	/// Print message to stdout.
@@ -27,6 +46,9 @@ struct Logger {
 		var line = ""
 		if showTimestamp {
 			line += timestamp().dim + " "
+		}
+		if let prefix = prefix {
+			line += prefix + ": "
 		}
 		line += message
 		fputs(line + "\n", out)
