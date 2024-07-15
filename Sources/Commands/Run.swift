@@ -27,7 +27,7 @@ extension RunOn {
             configPath.map { URL(filePath: $0) }
         }
 
-        mutating func run() throws {
+        func run() throws {
 			logger.config.level = logLevel
 			if output != "stdout" {
 				logger.out = LogOutput(file: output)

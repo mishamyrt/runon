@@ -20,12 +20,14 @@ struct RunOn: ParsableCommand {
         discussion: "VERSION: \(kAppVersion) (\(kBuildCommit))",
         version: kAppVersion,
         subcommands: [
-			Service.self,
-			Autostart.self,
+			Status.self,
+			Start.self,
+			Stop.self,
 			Run.self,
 			Print.self,
+			Log.self,
 			ConfigPath.self
         ],
-        defaultSubcommand: Service.self
+        defaultSubcommand: Status.self
     )
 }

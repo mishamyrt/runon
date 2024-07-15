@@ -61,3 +61,6 @@ publish: # release a new version
 	git tag "v${VERSION}"
 	git push
 	git push --tags
+
+.PHONY: check
+check: lint test
