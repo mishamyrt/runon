@@ -11,7 +11,7 @@ class LogOutput {
 	}
 
 	init(file: String) {
-		handle = fopen(file, "w")
+		handle = fopen(file, "wb")
 		shouldClose = true
 	}
 
