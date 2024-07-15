@@ -18,10 +18,8 @@ PROJECT_REPO="https://github.com/mishamyrt/runon"
 DIST_URL="$PROJECT_REPO/releases/$RELEASE/download/runon.zip"
 DIST_FILE="$TEMP_DIR/runon.zip"
 INSTALLATION_DIR="/usr/local/bin"
-SCRIPT_FILE_NAME="runon"
-DAEMON_FILE_NAME="runon-daemon"
-SCRIPT_PATH="$INSTALLATION_DIR/$SCRIPT_FILE_NAME"
-DAEMON_PATH="$INSTALLATION_DIR/$DAEMON_FILE_NAME"
+APP_FILE_NAME="runon"
+APP_FILE_PATH="$INSTALLATION_DIR/$APP_FILE_NAME"
 
 colored_print() {
   echo -e "\033[${2}m${1}\033[0m"
@@ -41,16 +39,13 @@ get_dist() {
 }
 
 install_dist() {
-	sudo rm -f \
-		"$SCRIPT_PATH" \
-		"$DAEMON_PATH"
-	sudo cp "$TEMP_DIR/$SCRIPT_FILE_NAME" "$SCRIPT_PATH"
-	sudo cp "$TEMP_DIR/$DAEMON_FILE_NAME" "$DAEMON_PATH"
+	sudo rm -f "$APP_FILE_PATH"
+	sudo cp "$TEMP_DIR/$APP_FILE_NAME" "$APP_FILE_PATH"
 }
 
 install() {
 	echo "Installing runon $RELEASE"
-	previous_version="$(runon-daemon --version || echo "")"
+	previous_version="$(runon --version || echo "")"
 	if [ -n "$previous_version" ]; then
 		grey "Overwriting previous version: $previous_version"
 	fi
@@ -58,7 +53,7 @@ install() {
 	get_dist
 	grey "Installing..."
 	install_dist
-	green "Successfully installed $(runon-daemon --version)"
+	green "Successfully installed $(runon --version)"
 }
 
 install
