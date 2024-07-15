@@ -4,7 +4,7 @@ import Foundation
 extension RunOn {
     struct Run: ParsableCommand {
         static var configuration =
-            CommandConfiguration(abstract: "Start event observer.")
+            CommandConfiguration(abstract: "Start action runner on foreground.")
 
         @Option(
             name: [.customLong("log"), .customShort("l")],

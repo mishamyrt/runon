@@ -1,5 +1,5 @@
 VERSION := 1.0.5
-ENTRYPOINT_SCRIPT_FILE := scripts/runon.bash
+INSTALLATION_SCRIPT_FILE := scripts/install.sh
 BUILD_INFO_FILE := Sources/BuildInfo.swift
 BUILD_INFO_TEMPLATE := Sources/BuildInfo.template.swift
 
@@ -21,9 +21,7 @@ build: generate ## build runon
 	swift build
 	rm -rf ./dist
 	mkdir ./dist
-	cp .build/debug/runon ./dist/runon-daemon
-	cp "${ENTRYPOINT_SCRIPT_FILE}" ./dist/runon
-	chmod +x ./dist/runon
+	cp .build/debug/runon ./dist/runon
 
 .PHONY: build-release
 build-release: build
@@ -33,14 +31,16 @@ build-release: build
 .PHONY: lint
 lint: generate ## check code style
 	swiftlint lint --config .swiftlint.yaml .
-	shellcheck -a "${ENTRYPOINT_SCRIPT_FILE}"
+	shellcheck -a "${INSTALLATION_SCRIPT_FILE}"
 
 .PHONY: install
 install: ## install runon to the system
 	rm -f \
 		/usr/local/bin/runon \
+		/usr/local/bin/runond \
+		/usr/local/bin/runon-service \
 		/usr/local/bin/runon-daemon
-	cp dist/* /usr/local/bin/
+	cp dist/runon /usr/local/bin/runon
 
 .PHONY: test
 test: generate ## run tests

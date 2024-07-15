@@ -5,8 +5,7 @@ extension RunOn {
         static var configuration =
             CommandConfiguration(
                 abstract: """
-                Starts the observer in a special mode that does not execute commands, \
-                but prints all supported events.
+                Print all observed events.
                 """.trimmingCharacters(in: [" "])
             )
 

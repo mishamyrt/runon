@@ -18,17 +18,6 @@ extension ConfigError: CustomStringConvertible {
 }
 
 let kDefaultGroup = "common"
-var kDefaultConfigURL: URL {
-    let homeDir = FileManager.default.homeDirectoryForCurrentUser
-    return homeDir
-        .appendingPathComponent(".config")
-        .appendingPathComponent("runon")
-        .appendingPathComponent("config")
-        .appendingPathExtension("yaml")
-}
-var kDefaultConfigPath: String {
-    kDefaultConfigURL.absoluteString.dropSchema("file")
-}
 
 struct Config {
 	var actionMap: ActionMap = [:]

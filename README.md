@@ -31,10 +31,10 @@ sudo make install
 
 ## Configuration
 
-To open editing of the configuration file, run the command:
+To print the configuration file path, run the command:
 
 ```sh
-runon config
+runon config-path
 ```
 
 The configuration is described in the format:
@@ -127,15 +127,11 @@ The following event sources can be subscribed to:
 
 ## Usage
 
-The application is controlled through commands:
+### Service
 
-- `run` — Runs the application in the current process without daemonization..
-- `print` — Starts the observer in a special mode that prints all supported events.
-- `autostart` — Enables, disables, or prints the autostart status.
-- `start` — Starts the application in the background.
-- `stop` — Stops the background application.
-- `restart` — Restarts background application.
-- `status` — Prints the status of the application.
-- `log` — Starts the application log viewer in follow mode.
-- `config` — Opens editing of the configuration file.
-- `config-path` — Prints the absolute path of the configuration file.
+The background service can be started and stopped with the `runon` command.
+
+```sh
+runon start # starts the service
+runon stop # stops the service
+```
