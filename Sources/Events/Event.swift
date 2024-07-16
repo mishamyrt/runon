@@ -1,7 +1,7 @@
 struct Event {
     let source: String
     let kind: String
-    let target: String
+    let target: String?
 }
 
 protocol EventListener {
@@ -19,7 +19,7 @@ protocol EventSource: EventProvider {
 }
 
 extension EventSource {
-    func emit(kind: String, target: String) {
+    func emit(kind: String, target: String? = nil) {
         guard let listener else {
             return
         }

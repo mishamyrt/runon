@@ -14,11 +14,7 @@ class EventObserver: EventListener, EventProvider {
 
     func handle(_ event: Event) {
 		kEventLogger.eventReceived(event)
-        guard let listener else {
-			kEventLogger.listenerIsNil()
-            return
-        }
-        listener.handle(event)
+        listener?.handle(event)
     }
 
     func subscribeSources() {

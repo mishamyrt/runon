@@ -6,7 +6,11 @@ struct EventLogger {
 	}
 
 	func eventReceived(_ event: Event) {
-		self.logger.info("received event \(event.source.cyan):\(event.kind.blue) with \(event.target.yellow)")
+		var message = "received event \(event.source.cyan):\(event.kind.blue)"
+		if let target = event.target {
+			message += " with \(target.yellow)"
+		}
+		self.logger.info(message)
 	}
 
 	func sourcesSubscribed(_ sources: [EventSource]) {
@@ -14,10 +18,6 @@ struct EventLogger {
 			.map { source in source.name.cyan }
 			.joined(separator: ", ")
 		self.logger.info("subscribed to: \(names)")
-	}
-
-	func listenerIsNil() {
-		self.logger.error("event skipped, because listener is not set")
 	}
 }
 

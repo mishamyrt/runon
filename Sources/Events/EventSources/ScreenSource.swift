@@ -2,6 +2,15 @@ import Cocoa
 import CoreGraphics
 
 class ScreenSource: EventSource {
+	enum EventName: String {
+		case connected = "com.apple.screenIsLocked"
+		case disconnected = "com.apple.screenIsUnlocked"
+
+		init(of value: Notification) {
+			self = Self(rawValue: value.name.rawValue) ?? .connected
+		}
+	}
+
     let semaphore = DispatchSemaphore(value: 1)
     var name = "screen"
     var listener: EventListener?
@@ -16,6 +25,19 @@ class ScreenSource: EventSource {
             screen.localizedName
         }
     }
+
+	@objc
+	func handleLockChange(notification: Notification) {
+		let event = EventName(of: notification)
+
+		switch event {
+		case .connected:
+			emit(kind: "locked")
+
+		case .disconnected:
+			emit(kind: "unlocked")
+		}
+	}
 
     @objc
     func refreshScreens() {
@@ -32,6 +54,16 @@ class ScreenSource: EventSource {
     }
 
     func subscribe() {
+		let events = ["com.apple.screenIsLocked", "com.apple.screenIsUnlocked"]
+		for event in events {
+			DistributedNotificationCenter.default().addObserver(
+				self,
+				selector: #selector(handleLockChange),
+				name: .init(event),
+				object: nil
+			)
+		}
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(refreshScreens),
