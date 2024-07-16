@@ -1,4 +1,4 @@
-VERSION := 1.0.5
+VERSION := 1.0.6
 INSTALLATION_SCRIPT_FILE := scripts/install.sh
 BUILD_INFO_FILE := Sources/BuildInfo.swift
 BUILD_INFO_TEMPLATE := Sources/BuildInfo.template.swift

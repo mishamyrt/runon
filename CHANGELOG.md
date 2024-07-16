@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog][],
 and this project adheres to [Semantic Versioning][].
 
 
+## [v1.0.6](https://github.com/mishamyrt/runon/releases/tag/v1.0.6) - 2024-07-16
+### Bug Fixes
+- correctly write colored log to file
+- adapt installation script to new structure
+
+### Features
+- move all daemon logic to swift
+- sync outputs between logger entities
+
+### Refactoring
+- rename logger module to log
+- improve command splitting
+- allow configuring keep alive
+
+
 ## [v1.0.5](https://github.com/mishamyrt/runon/releases/tag/v1.0.5) - 2024-07-14
 ### Bug Fixes
 - sync sub-loggers level
@@ -122,7 +137,8 @@ and this project adheres to [Semantic Versioning][].
 
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/mishamyrt/runon/compare/v1.0.5...HEAD
+[Unreleased]: https://github.com/mishamyrt/runon/compare/v1.0.6...HEAD
+[v1.0.6]: https://github.com/mishamyrt/runon/compare/v1.0.5...v1.0.6
 [v1.0.5]: https://github.com/mishamyrt/runon/compare/v1.0.4...v1.0.5
 [v1.0.4]: https://github.com/mishamyrt/runon/compare/v1.0.3...v1.0.4
 [v1.0.3]: https://github.com/mishamyrt/runon/compare/v1.0.2...v1.0.3
