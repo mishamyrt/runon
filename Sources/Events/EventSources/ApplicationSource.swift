@@ -38,6 +38,6 @@ class ApplicationSource: EventSource {
 
     private func bundleIdentifier(from: Notification) -> String? {
         let app = from.userInfo?["NSWorkspaceApplicationKey"] as? NSRunningApplication
-        return app?.bundleIdentifier
+        return app?.bundleIdentifier ?? app?.localizedName
     }
 }
