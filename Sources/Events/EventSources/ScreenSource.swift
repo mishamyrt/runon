@@ -2,12 +2,12 @@ import Cocoa
 import CoreGraphics
 
 class ScreenSource: EventSource {
-	enum EventName: String {
-		case connected = "com.apple.screenIsLocked"
-		case disconnected = "com.apple.screenIsUnlocked"
+	enum EventID: String {
+		case locked = "com.apple.screenIsLocked"
+		case unlocked = "com.apple.screenIsUnlocked"
 
 		init(of value: Notification) {
-			self = Self(rawValue: value.name.rawValue) ?? .connected
+			self = Self(rawValue: value.name.rawValue) ?? .locked
 		}
 	}
 
@@ -28,13 +28,11 @@ class ScreenSource: EventSource {
 
 	@objc
 	func handleLockChange(notification: Notification) {
-		let event = EventName(of: notification)
-
-		switch event {
-		case .connected:
+		switch EventID(of: notification) {
+		case .locked:
 			emit(kind: "locked")
 
-		case .disconnected:
+		case .unlocked:
 			emit(kind: "unlocked")
 		}
 	}
