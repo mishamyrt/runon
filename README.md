@@ -123,7 +123,7 @@ The following event sources can be subscribed to:
 
 - `screen` — connected displays list change. declares `connected`, `disconnected`, `locked` and `unlocked` events. In `with` takes the display name.
 - `audio` — connected audio device list change. declares `connected` and `disconnected` events. In `with` takes the audio device name. Handles both input and output devices.
-- `app` — active application change. declares `activated` and `deactivated` events. In `with` takes the app bundle identifier (like `com.microsoft.VSCode`).
+- `app` — active application change. declares `activated`, `deactivated`, `launched` and `terminated` events. In `with` takes the app bundle identifier (like `com.microsoft.VSCode`). If the application does not have a bundleID, the name of the executable will be used as the fallback. To see which event the application emits, use the `runon print` command.
 
 ## Usage
 

@@ -7,7 +7,7 @@ class ApplicationSource: EventSource {
 
     @objc
     func handleAppActivate(notification: Notification) {
-        guard let bundleId = bundleIdentifier(from: notification) else {
+        guard let bundleId = appIdentifier(from: notification) else {
             return
         }
         emit(kind: "activated", target: bundleId)
@@ -15,10 +15,26 @@ class ApplicationSource: EventSource {
 
     @objc
     func handleAppDeactivate(notification: Notification) {
-        guard let bundleId = bundleIdentifier(from: notification) else {
+        guard let bundleId = appIdentifier(from: notification) else {
             return
         }
         emit(kind: "deactivated", target: bundleId)
+    }
+
+	@objc
+    func handleAppLaunch(notification: Notification) {
+        guard let bundleId = appIdentifier(from: notification) else {
+            return
+        }
+        emit(kind: "launched", target: bundleId)
+    }
+
+	@objc
+    func handleAppTerminate(notification: Notification) {
+        guard let bundleId = appIdentifier(from: notification) else {
+            return
+        }
+        emit(kind: "terminated", target: bundleId)
     }
 
     func subscribe() {
@@ -34,10 +50,24 @@ class ApplicationSource: EventSource {
             name: NSWorkspace.didDeactivateApplicationNotification,
             object: nil
         )
+		NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(handleAppLaunch),
+            name: NSWorkspace.didLaunchApplicationNotification,
+            object: nil
+        )
+		NSWorkspace.shared.notificationCenter.addObserver(
+			self,
+			selector: #selector(handleAppTerminate),
+			name: NSWorkspace.didTerminateApplicationNotification,
+			object: nil
+		)
     }
 
-    private func bundleIdentifier(from: Notification) -> String? {
+    private func appIdentifier(from: Notification) -> String? {
         let app = from.userInfo?["NSWorkspaceApplicationKey"] as? NSRunningApplication
-        return app?.bundleIdentifier ?? app?.localizedName
+        return app?.bundleIdentifier
+			?? app?.localizedName
+			?? app?.executableURL?.lastPathComponent
     }
 }
