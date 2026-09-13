@@ -4,9 +4,8 @@ use dispatch2::DispatchQueue;
 use objc2::MainThreadMarker;
 use objc2_app_kit::{
     NSApplication, NSApplicationActivationPolicy,
-    NSApplicationDidChangeScreenParametersNotification, NSEvent, NSEventMask,
-    NSEventModifierFlags, NSEventType, NSWorkspace,
-    NSWorkspaceDidWakeNotification,
+    NSApplicationDidChangeScreenParametersNotification, NSEvent, NSEventMask, NSEventModifierFlags,
+    NSEventType, NSWorkspace, NSWorkspaceDidWakeNotification,
 };
 use objc2_foundation::{NSDate, NSDefaultRunLoopMode, NSNotificationCenter, NSPoint};
 use runon_core::event::{Event, Kind, Value};
@@ -115,12 +114,14 @@ fn main() {
     drop(sources);
     fs::remove_dir_all(dir).unwrap();
     assert!(
-        application.nextEventMatchingMask_untilDate_inMode_dequeue(
-            NSEventMask::ApplicationDefined,
-            Some(&NSDate::distantPast()),
-            unsafe { NSDefaultRunLoopMode },
-            true,
-        ).is_none(),
+        application
+            .nextEventMatchingMask_untilDate_inMode_dequeue(
+                NSEventMask::ApplicationDefined,
+                Some(&NSDate::distantPast()),
+                unsafe { NSDefaultRunLoopMode },
+                true,
+            )
+            .is_none(),
         "main loop did not process the AppKit event queue"
     );
     let events = events.lock().unwrap();

@@ -18,9 +18,11 @@ cargo run --locked -p runon-macos --example native_smoke
 | Processes | 100 rapid exits, spawn failure, literal argv, sequential failure, following batch actions, 2 MB per output stream with exact 64 KiB tails, timeout, SIGTERM/SIGKILL escalation, killed descendant, slot reuse, graceful daemon shutdown |
 | CLI/install | Config paths/defaults, invalid arguments, empty config staying asleep, SIGTERM shutdown; installer paths with spaces and checksum rejection preserving the previous binary |
 | LaunchAgent | Isolated start/status/restart/stop, idempotent start, retained config path, invalid restart preserving PID, recovery after SIGKILL, restart waiting for a slow SIGTERM handler, retained settings after stop |
-| Native sources | All subscriptions and initial snapshots on a real GUI session; no startup connection events, repeated screen notifications and wake refresh without false display changes; real NSWorkspace launch/termination of a temporary app |
+| Native sources | AppKit event queue processing; all subscriptions and initial snapshots on a real GUI session; no startup connection events, repeated screen notifications and wake refresh without false display changes; real NSWorkspace launch/termination of a temporary app |
 
 The native test opens its own short-lived app hidden and without activation. It posts screen/wake notifications only to notification centers inside its own process, then removes its app bundle. It does not simulate a physical wake or broadcast fake lock notifications. The LaunchAgent test uses its own temporary home, config files and unique label; it leaves the user's `co.myrt.runon` service alone.
+
+The AppKit queue regression check posts a process-local `NSEvent` and verifies that the main loop consumes it. It failed with the previous bare `CFRunLoop` and passes with `NSApplication.run`, which processes the WindowServer events needed for display-change notifications. Synthetic notification delivery alone did not detect this bug; physical monitor acceptance below is still required. Shutdown dispatches `stop` to the main queue and posts a wake event so SIGINT/SIGTERM can exit an idle AppKit loop. See Apple's [event loop](https://developer.apple.com/documentation/appkit/nsapplication/run%28%29) and [stop behavior](https://developer.apple.com/documentation/appkit/nsapplication/stop%28_%3A%29) documentation.
 
 The scripts and workflow are prepared for macOS 26 ARM64. GitHub Actions has not been run from this local rewrite. Publishing requires an explicit version tag; no tag or release was created.
 

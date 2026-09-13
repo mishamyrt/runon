@@ -1,6 +1,11 @@
 //! Small ownership adapters for libdispatch. Callbacks must never block or unwind.
 use block2::RcBlock;
 use dispatch2::{DispatchObject, DispatchQueue, DispatchRetained, DispatchSource, DispatchTime};
+use objc2::{MainThreadMarker, rc::Retained};
+use objc2_app_kit::{
+    NSApplication, NSApplicationActivationPolicy, NSEvent, NSEventModifierFlags, NSEventType,
+};
+use objc2_foundation::NSPoint;
 use std::{fs::File, sync::Arc, time::Duration};
 
 pub enum SourceKind {
@@ -120,32 +125,42 @@ impl Drop for Signals {
 }
 
 pub fn stop_main() {
-    if let Some(runloop) = objc2_core_foundation::CFRunLoop::main() {
-        runloop.stop();
-    }
+    // Runtime shutdown can arrive on a worker queue. AppKit must stay on main.
+    DispatchQueue::main().exec_async(|| {
+        objc2::rc::autoreleasepool(|_| {
+            let app = NSApplication::sharedApplication(MainThreadMarker::new().unwrap());
+            app.stop(None);
+            // stop: only takes effect after an NSEvent is dispatched; signals
+            // and dispatch callbacks alone do not wake the AppKit event wait.
+            let event = NSEvent::otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2(
+                NSEventType::ApplicationDefined,
+                NSPoint::new(0.0, 0.0),
+                NSEventModifierFlags::empty(),
+                0.0,
+                0,
+                None,
+                0,
+                0,
+                0,
+            ).expect("valid application-defined event");
+            app.postEvent_atStart(&event, true);
+        });
+    });
 }
 
-/// An inert source keeps an empty-config run loop asleep without a polling timer.
+/// AppKit must dispatch WindowServer events to update NSScreen and deliver
+/// NSApplicationDidChangeScreenParametersNotification. CFRunLoop alone cannot.
 pub struct RunLoop {
-    source: objc2_core_foundation::CFRetained<objc2_core_foundation::CFRunLoopSource>,
+    app: Retained<NSApplication>,
 }
 impl RunLoop {
     pub fn new() -> Result<Self, String> {
-        use objc2_core_foundation::*;
-        let mut context: CFRunLoopSourceContext = unsafe { std::mem::zeroed() };
-        let source = unsafe { CFRunLoopSource::new(None, 0, &mut context) }
-            .ok_or("cannot create run loop source")?;
-        CFRunLoop::main()
-            .ok_or("no main run loop")?
-            .add_source(Some(&source), unsafe { kCFRunLoopCommonModes });
-        Ok(Self { source })
+        let mtm = MainThreadMarker::new().ok_or("event loop must start on the main thread")?;
+        let app = NSApplication::sharedApplication(mtm);
+        app.setActivationPolicy(NSApplicationActivationPolicy::Prohibited);
+        Ok(Self { app })
     }
     pub fn run(&self) {
-        objc2_core_foundation::CFRunLoop::run();
-    }
-}
-impl Drop for RunLoop {
-    fn drop(&mut self) {
-        self.source.invalidate();
+        self.app.run();
     }
 }
