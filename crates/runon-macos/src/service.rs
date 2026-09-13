@@ -1,6 +1,13 @@
 use crate::native::{Source, SourceKind};
 use dispatch2::DispatchQueue;
-use plist::{Dictionary, Value};
+use objc2::{
+    rc::Retained,
+    runtime::{AnyObject, ProtocolObject},
+};
+use objc2_foundation::{
+    NSArray, NSData, NSDictionary, NSMutableDictionary, NSNumber, NSPropertyListFormat,
+    NSPropertyListMutabilityOptions, NSPropertyListSerialization, NSString, ns_string,
+};
 use runon_core::config::{self, COMMAND_PATH, Config};
 use std::{
     fs,
@@ -15,6 +22,21 @@ pub struct LaunchAgent {
     label: String,
     home: PathBuf,
     binary: PathBuf,
+}
+
+fn read_plist(bytes: Vec<u8>) -> Result<Retained<NSMutableDictionary>, String> {
+    // SAFETY: NSData owns its bytes; the optional output format pointer is null.
+    let value = unsafe {
+        NSPropertyListSerialization::propertyListWithData_options_format_error(
+            &NSData::from_vec(bytes),
+            NSPropertyListMutabilityOptions::MutableContainers,
+            std::ptr::null_mut(),
+        )
+    }
+    .map_err(|e| e.to_string())?;
+    value
+        .downcast()
+        .map_err(|_| "agent plist must be a dictionary".into())
 }
 
 impl LaunchAgent {
@@ -124,16 +146,20 @@ impl LaunchAgent {
         if !path.exists() {
             return Ok(None);
         }
-        let value = Value::from_file(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let bytes = fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let value = read_plist(bytes).map_err(|e| format!("{}: {e}", path.display()))?;
         let args = value
-            .as_dictionary()
-            .and_then(|d| d.get("ProgramArguments"))
-            .and_then(Value::as_array)
+            .objectForKey(ns_string!("ProgramArguments"))
+            .and_then(|v| v.downcast::<NSArray>().ok())
             .ok_or("agent has no ProgramArguments")?;
+        let args: Vec<_> = args
+            .iter()
+            .map(|v| v.downcast_ref::<NSString>().map(|s| s.to_string()))
+            .collect();
         for pair in args.windows(2) {
-            if matches!(pair[0].as_string(), Some("-c" | "--config")) {
+            if matches!(pair[0].as_deref(), Some("-c" | "--config")) {
                 return pair[1]
-                    .as_string()
+                    .as_deref()
                     .map(PathBuf::from)
                     .map(Some)
                     .ok_or_else(|| "agent config path must be a string".into());
@@ -142,34 +168,54 @@ impl LaunchAgent {
         Ok(None)
     }
 
-    fn document(&self, path: &Path) -> Result<Value, String> {
+    fn document(&self, path: &Path) -> Result<Vec<u8>, String> {
         let binary = self.binary.to_str().ok_or("binary path must be UTF-8")?;
         let path = path.to_str().ok_or("config path must be UTF-8")?;
         let home = self.home.to_str().ok_or("home path must be UTF-8")?;
-        let mut dict = Dictionary::new();
-        dict.insert("Label".into(), self.label.clone().into());
-        dict.insert(
-            "ProgramArguments".into(),
-            Value::Array(
-                [binary, "run", "--service", "-c", path]
-                    .into_iter()
-                    .map(|s| s.into())
-                    .collect(),
-            ),
+        let agent = lunchd::LaunchAgent {
+            label: self.label.clone(),
+            program_arguments: [binary, "run", "--service", "-c", path]
+                .map(String::from)
+                .into(),
+            run_at_load: true,
+            working_directory: Some(self.home.clone()),
+            ..Default::default()
+        };
+        let dict = read_plist(agent.as_string().into_bytes())?;
+        // lunchd 0.2.1 cannot render these policies or EnvironmentVariables.
+        let keepalive = NSDictionary::from_slices(
+            &[ns_string!("SuccessfulExit")],
+            &[&*NSNumber::new_bool(false)],
         );
-        dict.insert("RunAtLoad".into(), true.into());
-        let mut keepalive = Dictionary::new();
-        keepalive.insert("SuccessfulExit".into(), false.into());
-        dict.insert("KeepAlive".into(), Value::Dictionary(keepalive));
-        dict.insert("ThrottleInterval".into(), 10u64.into());
-        dict.insert("ExitTimeOut".into(), 5u64.into());
-        dict.insert("LimitLoadToSessionType".into(), "Aqua".into());
-        dict.insert("WorkingDirectory".into(), home.into());
-        let mut env = Dictionary::new();
-        env.insert("HOME".into(), home.into());
-        env.insert("PATH".into(), COMMAND_PATH.into());
-        dict.insert("EnvironmentVariables".into(), Value::Dictionary(env));
-        Ok(Value::Dictionary(dict))
+        let env = NSDictionary::from_slices(
+            &[ns_string!("HOME"), ns_string!("PATH")],
+            &[
+                &*NSString::from_str(home),
+                &*NSString::from_str(COMMAND_PATH),
+            ],
+        );
+        for (key, value) in [
+            (ns_string!("KeepAlive"), &*keepalive as &AnyObject),
+            (ns_string!("EnvironmentVariables"), &*env),
+            (ns_string!("ThrottleInterval"), &*NSNumber::new_u64(10)),
+            (ns_string!("ExitTimeOut"), &*NSNumber::new_u64(5)),
+            (ns_string!("LimitLoadToSessionType"), ns_string!("Aqua")),
+        ] {
+            // SAFETY: this untyped mutable dictionary accepts NSString keys and plist values.
+            unsafe {
+                dict.setObject_forKey(value, ProtocolObject::from_ref(key));
+            }
+        }
+        // SAFETY: the dictionary contains only property-list values.
+        unsafe {
+            NSPropertyListSerialization::dataWithPropertyList_format_options_error(
+                &dict,
+                NSPropertyListFormat::XMLFormat_v1_0,
+                0,
+            )
+        }
+        .map(|data| data.to_vec())
+        .map_err(|e| e.to_string())
     }
 
     pub fn start(&self, path: Option<&Path>, restart: bool) -> Result<(), String> {
@@ -198,9 +244,7 @@ impl LaunchAgent {
             .open(&staging)
             .map_err(|e| e.to_string())?;
         let result = (|| {
-            document
-                .to_writer_xml(&mut file)
-                .map_err(|e| e.to_string())?;
+            file.write_all(&document).map_err(|e| e.to_string())?;
             file.flush()
                 .and_then(|()| file.sync_all())
                 .map_err(|e| e.to_string())?;
@@ -231,19 +275,50 @@ mod tests {
     use super::*;
     #[test]
     fn plist_escapes_paths_and_preserves_config() {
+        let dir = std::env::temp_dir().join(format!("runon plist & {}", std::process::id()));
         let agent = LaunchAgent::new(
             "co.myrt.runon.test".into(),
-            PathBuf::from("/tmp/a & b"),
+            dir.clone(),
             PathBuf::from("/tmp/a & b/runon"),
         );
-        let doc = agent.document(Path::new("/tmp/config <new>.kdl")).unwrap();
-        let mut data = Vec::new();
-        doc.to_writer_xml(&mut data).unwrap();
-        let back = Value::from_reader(std::io::Cursor::new(data)).unwrap();
-        assert_eq!(back, doc);
-        let args = back.as_dictionary().unwrap()["ProgramArguments"]
-            .as_array()
-            .unwrap();
-        assert_eq!(args[4].as_string(), Some("/tmp/config <new>.kdl"));
+        let config = Path::new("/tmp/конфиг <new> & 'quoted'.kdl");
+        let path = agent.path();
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, agent.document(config).unwrap()).unwrap();
+        // Check the launchd contract with macOS's independent plist reader.
+        for (key, kind, expected) in [
+            ("Label", "string", agent.label.as_str()),
+            ("ProgramArguments.0", "string", "/tmp/a & b/runon"),
+            ("ProgramArguments.4", "string", config.to_str().unwrap()),
+            ("WorkingDirectory", "string", dir.to_str().unwrap()),
+            ("EnvironmentVariables.HOME", "string", dir.to_str().unwrap()),
+            ("EnvironmentVariables.PATH", "string", COMMAND_PATH),
+            ("RunAtLoad", "bool", "true"),
+            ("KeepAlive.SuccessfulExit", "bool", "false"),
+            ("ThrottleInterval", "integer", "10"),
+            ("ExitTimeOut", "integer", "5"),
+            ("LimitLoadToSessionType", "string", "Aqua"),
+        ] {
+            let output = Command::new("/usr/bin/plutil")
+                .args(["-extract", key, "raw", "-expect", kind, "-n", "-o", "-"])
+                .arg(&path)
+                .output()
+                .unwrap();
+            assert!(output.status.success(), "{key}: {output:?}");
+            assert_eq!(String::from_utf8(output.stdout).unwrap(), expected, "{key}");
+        }
+        assert_eq!(agent.saved_config().unwrap().as_deref(), Some(config));
+        assert!(
+            Command::new("/usr/bin/plutil")
+                .args(["-convert", "binary1"])
+                .arg(&path)
+                .status()
+                .unwrap()
+                .success()
+        );
+        assert_eq!(agent.saved_config().unwrap().as_deref(), Some(config));
+        fs::write(&path, "invalid plist").unwrap();
+        assert!(agent.saved_config().is_err());
+        fs::remove_dir_all(dir).unwrap();
     }
 }

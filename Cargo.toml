@@ -23,11 +23,11 @@ lexopt = "0.3.2"
 libc = "0.2"
 log = "0.4"
 oslog = { version = "0.2", default-features = false }
-plist = "1"
+lunchd = "0.2.1"
 block2 = "0.6"
 dispatch2 = "0.3.1"
 objc2 = "0.6"
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSDictionary", "NSString", "NSValue", "NSNotification", "NSDistributedNotificationCenter", "NSRunLoop", "NSThread", "NSProcessInfo", "NSOperation", "NSEnumerator", "block2"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSDictionary", "NSData", "NSError", "NSPropertyList", "NSString", "NSValue", "NSNotification", "NSDistributedNotificationCenter", "NSRunLoop", "NSThread", "NSProcessInfo", "NSOperation", "NSEnumerator", "block2"] }
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder", "NSWorkspace", "NSRunningApplication", "NSScreen", "NSGraphics", "NSEvent", "NSGraphicsContext", "block2"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFRunLoop", "CFString", "CFDictionary", "CFNumber", "CFArray"] }
 objc2-core-audio = { version = "0.3.2", default-features = false, features = ["std", "AudioHardware", "objc2", "objc2-core-audio-types", "block2", "dispatch2"] }

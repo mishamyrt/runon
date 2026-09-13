@@ -1,7 +1,7 @@
 //! Event-driven child supervision. A leader is reaped only after group cleanup,
 //! so delayed signals can never target a recycled process-group identifier.
 use dispatch2::DispatchQueue;
-use runon_core::config::{Action, COMMAND_PATH, Step};
+use runon_core::config::{Action, COMMAND_PATH};
 use runon_macos::native::{Source, SourceKind};
 use std::{
     collections::VecDeque,
@@ -245,19 +245,10 @@ impl Process {
                 stderr: String::new(),
             });
         }
-        let mut command = match &action.steps[self.step] {
-            Step::Exec(args) => {
-                let mut c = Command::new(&args[0]);
-                c.args(&args[1..]);
-                c
-            }
-            Step::Shell(script) => {
-                let mut c = Command::new("/bin/sh");
-                c.args(["-c", script]);
-                c
-            }
-        };
+        let args = &action.steps[self.step];
+        let mut command = Command::new(&args[0]);
         command
+            .args(&args[1..])
             .current_dir(home)
             .env("PATH", COMMAND_PATH)
             .stdin(Stdio::null())

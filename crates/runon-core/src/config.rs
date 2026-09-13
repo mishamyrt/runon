@@ -26,23 +26,16 @@ impl Selector {
 }
 
 #[derive(Clone, Debug)]
-pub enum Step {
-    Exec(Vec<String>),
-    Shell(String),
-}
-
-#[derive(Clone, Debug)]
 pub struct Action {
     pub name: String,
     pub selectors: Vec<Selector>,
-    pub steps: Vec<Step>,
+    pub steps: Vec<Vec<String>>,
     pub timeout: Duration,
     pub group: usize,
 }
 
 #[derive(Clone, Debug)]
 pub struct Group {
-    pub name: String,
     pub debounce: Duration,
 }
 
@@ -256,9 +249,8 @@ impl Config {
                         }
                         debounce = Some(r.duration(item, true)?);
                     }
-                    named_groups.insert(name.clone(), result.groups.len());
+                    named_groups.insert(name, result.groups.len());
                     result.groups.push(Group {
-                        name,
                         debounce: debounce.unwrap_or_default(),
                     });
                 }
@@ -280,7 +272,6 @@ impl Config {
             } else {
                 let id = result.groups.len();
                 result.groups.push(Group {
-                    name: format!("action:{name}"),
                     debounce: Duration::ZERO,
                 });
                 id
@@ -310,17 +301,19 @@ impl Config {
                             return Err(r.node_error(item, "exec requires a program"));
                         }
                         r.name(args[0])?;
-                        action.steps.push(Step::Exec(
+                        action.steps.push(
                             args.into_iter()
                                 .map(|e| r.text(e).map(String::from))
                                 .collect::<Result<_, _>>()?,
-                        ));
+                        );
                     }
                     "shell" => {
                         r.leaf(item)?;
-                        action
-                            .steps
-                            .push(Step::Shell(r.text(r.one(item, &[])?)?.into()));
+                        action.steps.push(vec![
+                            "/bin/sh".into(),
+                            "-c".into(),
+                            r.text(r.one(item, &[])?)?.into(),
+                        ]);
                     }
                     other => {
                         return Err(r.node_error(item, format!("unknown action node '{other}'")));
@@ -409,7 +402,7 @@ mod tests {
             &[0]
         );
         assert_eq!(c.actions[0].timeout, Duration::from_secs(30));
-        assert!(matches!(&c.actions[0].steps[0], Step::Shell(s) if s == "echo \"$HOME\""));
+        assert_eq!(c.actions[0].steps[0], ["/bin/sh", "-c", "echo \"$HOME\""]);
         let selector = &c.actions[0].selectors[0];
         assert!(!selector.matches(&Event::new(Kind::AppActivated).text("bundle-id", "editor")));
         assert!(
