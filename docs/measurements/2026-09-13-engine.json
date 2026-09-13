@@ -1,0 +1,1 @@
+{"samples":1000,"p50_ms":0.006334,"p95_ms":0.009542,"p99_ms":0.011916999999999999,"flood_events":1000000,"flood_seconds":0.096776833,"footprint_before_bytes":3080720,"footprint_peak_bytes":3080720,"footprint_after_bytes":3080720}

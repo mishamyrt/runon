@@ -1,12 +1,5 @@
 .DS_Store
-/.build
-/Packages
-xcuserdata/
-DerivedData/
+target/
 dist/
-.swiftpm/
 .netrc
 .vscode
-
-# Generated files
-Sources/BuildInfo.swift

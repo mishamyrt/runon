@@ -1,7 +1,0 @@
-actions:
-  - on: app:activated
-    with: com.google.Chrome
-    run: echo "chrome"
-  - on: app:activated
-    with: com.microsoft.VSCode
-    run: echo "vscode"

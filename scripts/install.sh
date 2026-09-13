@@ -1,59 +1,41 @@
 #!/bin/bash
+set -euo pipefail
 
-set -e
-
-# Handle release argument
-if [ -z "$1" ]; then
-	RELEASE="latest"
-else
-	RELEASE="tag/$1"
+if [[ $(uname -s) != Darwin || $(uname -m) != arm64 ]]; then
+    echo 'RunOn requires Apple Silicon and macOS 26 or newer.' >&2
+    exit 1
+fi
+os_version=$(sw_vers -productVersion)
+if (( ${os_version%%.*} < 26 )); then
+    echo 'RunOn requires macOS 26 or newer.' >&2
+    exit 1
 fi
 
-# Setup temp dir and cleanup
-TEMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TEMP_DIR"' EXIT
+repo='https://github.com/mishamyrt/runon'
+if [[ $# == 0 ]]; then
+    url="$repo/releases/latest/download"
+elif [[ $# == 1 && $1 =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][a-zA-Z0-9.-]+)?$ ]]; then
+    url="$repo/releases/download/$1"
+else
+    echo "Usage: $0 [vVERSION]" >&2
+    exit 1
+fi
 
-# Internal variables
-PROJECT_REPO="https://github.com/mishamyrt/runon"
-DIST_URL="$PROJECT_REPO/releases/$RELEASE/download/runon.zip"
-DIST_FILE="$TEMP_DIR/runon.zip"
-INSTALLATION_DIR="/usr/local/bin"
-APP_FILE_NAME="runon"
-APP_FILE_PATH="$INSTALLATION_DIR/$APP_FILE_NAME"
+install_tmp=$(mktemp -d)
+install_dir="$HOME/.local/bin"
+staged_binary="$install_dir/.runon-install-$$"
+trap 'rm -rf "$install_tmp"; rm -f "$staged_binary"' EXIT
 
-colored_print() {
-  echo -e "\033[${2}m${1}\033[0m"
-}
-
-grey() {
-  colored_print "$1" "30"
-}
-
-green() {
-  colored_print "$1" "32"
-}
-
-get_dist() {
-	curl -sL "$DIST_URL" -o "$DIST_FILE"
-	unzip "$DIST_FILE" -d "$TEMP_DIR" > /dev/null
-}
-
-install_dist() {
-	sudo rm -f "$APP_FILE_PATH"
-	sudo cp "$TEMP_DIR/$APP_FILE_NAME" "$APP_FILE_PATH"
-}
-
-install() {
-	echo "Installing runon $RELEASE"
-	previous_version="$(runon --version || echo "")"
-	if [ -n "$previous_version" ]; then
-		grey "Overwriting previous version: $previous_version"
-	fi
-	grey "Downloading distribution..."
-	get_dist
-	grey "Installing..."
-	install_dist
-	green "Successfully installed $(runon --version)"
-}
-
-install
+curl --fail --silent --show-error --location "$url/runon-macos-arm64.tar.gz" -o "$install_tmp/runon-macos-arm64.tar.gz"
+curl --fail --silent --show-error --location "$url/SHA256SUMS" -o "$install_tmp/SHA256SUMS"
+(
+    cd "$install_tmp"
+    shasum -a 256 -c SHA256SUMS
+    tar -xzf runon-macos-arm64.tar.gz
+)
+mkdir -p "$install_dir"
+install -m 755 "$install_tmp/runon" "$staged_binary"
+mv -f "$staged_binary" "$install_dir/runon"
+printf 'Installed RunOn %s to %s\n' "$("$install_dir/runon" --version)" "$install_dir/runon"
+printf 'Create ~/.config/runon/config.kdl, then run: %s start\n' "$install_dir/runon"
+printf 'For an existing service, apply this update with: %s restart\n' "$install_dir/runon"

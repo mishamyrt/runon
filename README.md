@@ -2,136 +2,205 @@
     <img src="./assets/logo.svg" alt="RunOn logo" />
 </p>
 
-[![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml) [![Version](https://img.shields.io/github/v/tag/mishamyrt/runon?sort=semver)](https://github.com/mishamyrt/nuga-lib/tags)
+[![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
 
-RunOn is a utility for running commands on macOS system events.
+RunOn runs commands when your Mac's displays, audio devices, applications, lock state or power source change. Version 2 is one small Rust binary for **macOS 26+ on Apple Silicon**, configured with **KDL 2**.
 
-## Installation
+## Install
 
-### Script
-
-The easiest way is to use an installation script. To install using the script, run the command:
+From a published 2.x release:
 
 ```sh
-curl -skSfL https://raw.githubusercontent.com/mishamyrt/runon/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mishamyrt/runon/main/scripts/install.sh | bash
 ```
 
-This command will download and run the [installation script](./scripts/install.sh).
+The installer checks the archive's SHA-256 and places `runon` in `~/.local/bin`. Add that directory to your interactive PATH. Installation does not start the service. For a particular release, download the installer and pass a tag such as `v2.0.0`.
 
-### Build from source
-
-Building the project is currently only possible on macOS. Swift 5.10 is required for the build.
+To build this checkout, install Rust with rustup and the Xcode Command Line Tools, then:
 
 ```sh
-# Build the project from source code
-make build
-# Install runon to the system
-sudo make install
+make install
 ```
 
-## Configuration
+Cargo uses the pinned toolchain in `rust-toolchain.toml`. No `sudo` is needed. Version 2.0.0 is prepared in this checkout; downloading it requires a published release.
 
-To print the configuration file path, run the command:
+## Quick start
+
+Create `$XDG_CONFIG_HOME/runon/config.kdl`, or `~/.config/runon/config.kdl` if `XDG_CONFIG_HOME` is unset:
+
+```kdl
+max-parallel 4
+
+group desk {
+    debounce "500ms"
+}
+
+action desk-on group=desk {
+    on screen.connected name="Mi 27 NU"
+    timeout "5s"
+    exec "myrt_desk" "on"
+}
+
+action desk-off group=desk {
+    on screen.disconnected name="Mi 27 NU"
+    exec "myrt_desk" "off"
+}
+
+action after-wake {
+    on system.wake
+    exec "setup_audio"
+}
+
+action battery-mode {
+    on power.changed source=battery
+    shell #"""
+        desk_lights off
+        lunar set 60
+        """#
+}
+```
+
+Then validate and run:
 
 ```sh
-runon config-path
+runon check
+runon run      # foreground, Ctrl-C to stop
+runon start    # install and load the user LaunchAgent
 ```
 
-The configuration is described in the format:
+Use `runon events` to discover event names and device identifiers. It observes all sources and prints selectors that can be pasted into an action:
 
-> When `SOURCE` emits an `EVENT` [with `DATA`] execute a `COMMAND`
-
-Example:
-
-```yaml
-actions:
-  # If my work monitor is connected, turn on the desk backlight
-  - on: screen:connected
-    with: Mi 27 NU
-    run: myrt_desk on# If the monitor is disconnected, turn off the desk backlight
-  - on: screen:disconnected
-    with: Mi 27 NU
-    run: myrt_desk off
+```kdl
+on screen.connected id=3 name="Mi 27 NU"
+on audio.connected name="USB Audio" uid="AppleUSBAudioEngine:example"
+on app.activated bundle-id="com.apple.TextEdit" name="TextEdit"
+on power.changed source="battery"
 ```
 
-If you want to run a command on an event, regardless of the input (`with`), then use the simplified notation:
+These are illustrative identifiers. Display IDs belong to the current session. Omit `id` when a rule should match a display by name across sessions.
 
-```yaml
-actions:
-  # If any monitor is disconnected, set brightness to 60%
-  - on: screen:disconnected
-    run: lunar set 60
+## Configuration reference
+
+KDL 2 supports bare string values such as `desk`, quoted Unicode strings, comments and multiline raw strings. Separate nodes with a newline or `;`. RunOn parses KDL once, validates it, builds typed rules and releases the parser document. Changes take effect on restart.
+
+| Node | Meaning | Default |
+| --- | --- | --- |
+| `max-parallel 4` | Maximum number of executing groups; positive integer | `4` |
+| `group NAME { … }` | Named group; names must be unique and nonempty | — |
+| `debounce "500ms"` | Group quiet period after the latest matching event | `0ms` |
+| `action NAME group=NAME { … }` | Named action, optionally assigned to a declared group | Private group |
+| `on EVENT filter=value` | Event selector; at least one per action | — |
+| `timeout "30s"` | Deadline for the entire action, including every step | `30s` |
+| `exec "program" "argument"` | Execute a program with literal string arguments | — |
+| `shell "script"` | Execute one string through `/bin/sh -c` | — |
+
+An action needs a unique, nonempty name, at least one selector and at least one step. Group declarations may follow actions that reference them. Durations are unsigned integer strings ending in `ms`, `s` or `m`; timeout must be positive, debounce can be zero. Out-of-range durations are rejected.
+
+Multiple `on` nodes are **OR**. Properties on one selector are **AND**. Values compare exactly, including case. A missing event field never satisfies a filter. A selector without properties matches any event of that kind. One event selects each matching action once, even when several of its selectors match.
+
+```kdl
+action editors {
+    on app.activated bundle-id="com.apple.TextEdit"
+    on app.activated bundle-id="com.microsoft.VSCode"
+    exec "setup_keyboard"
+    exec "setup_audio" "editing"
+}
 ```
 
-Execution of commands is time-limited. The default maximum time is 30 seconds. It can be set for each command separately.
+Unknown nodes, events, properties, invalid types, duplicate singleton settings and undefined groups are errors reported with the config path, line and column. Type annotations are not part of the schema. KDL 1, YAML, variable interpolation, state conditions, plugins and live reload are not supported.
 
-```yaml
-actions:
-  # the process will be terminated in 20 seconds
-  - on: screen:disconnected
-    run: sleep 30
-    timeout: 20s
+### Events
+
+| Event | Optional filters |
+| --- | --- |
+| `screen.connected`, `screen.disconnected` | `name` (string), `id` (unsigned 32-bit integer) |
+| `screen.locked`, `screen.unlocked` | None |
+| `audio.connected`, `audio.disconnected` | `name`, `uid` (strings) |
+| `app.activated`, `app.deactivated`, `app.launched`, `app.terminated` | `bundle-id`, `name` (strings) |
+| `system.wake` | None |
+| `power.changed` | `source`: `ac`, `battery`, `ups` |
+
+Display identity is the system display ID; audio identity is the device UID. Devices with identical names remain distinct. Disconnect events use the last saved metadata. Audio covers both input and output devices. Application fields are omitted when the OS does not provide them.
+
+Application launch/termination follow NSWorkspace notifications: macOS excludes background applications and applications declaring `LSUIElement` from these notifications. See [Apple's delivery rules](https://developer.apple.com/documentation/appkit/nsworkspace/didlaunchapplicationnotification).
+
+Startup captures a baseline without generating connection or power events. Duplicate device/power notifications do not create duplicate changes. Wake notifications also refresh subscribed device and power snapshots, detecting changes missed while asleep. There is no sleep event.
+
+Lock/unlock delivery uses the distributed notifications `com.apple.screenIsLocked` and `com.apple.screenIsUnlocked`. These names are undocumented by Apple; delivery must be checked on each supported OS version. See [validation status](docs/validation.md).
+
+### Scheduling
+
+All matching actions in the same group form a batch in config order. A group runs one batch and holds at most one pending batch. Every subsequent matching event replaces that pending batch in full; it does not interrupt the current batch.
+
+Debounce starts again on the latest matching event. A pending batch becomes eligible after its debounce expires and the current batch finishes. Eligible groups run in readiness order, up to `max-parallel` at once. A zero-debounce replacement keeps an already-waiting group's position. Actions without an explicit group each get an independent group. Pending storage is bounded by the number of configured groups, even during an event flood.
+
+Steps run sequentially. Failure or timeout skips the rest of that action, then continues with the next action in its batch. It does not stop the daemon.
+
+### Commands and output
+
+`exec` never invokes a shell. `$HOME`, `~`, globs and pipes remain literal arguments. Use `shell` for shell expansion or pipelines. Shell behavior is `/bin/sh -c`; for failure to stop a multiline shell script, include `set -e` or use separate steps. Shell profiles are not loaded.
+
+Commands run in the user's home directory, with inherited environment variables and this explicit PATH in both foreground and service mode:
+
+```text
+/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 ```
 
-To execute multiple commands sequentially, describe them in a multiline string, as in the script:
+Standard input is `/dev/null`. Both output streams are drained without blocking, retaining only the last 64 KiB of each stream of the current step. Failures log the exit status/reason and retained output; successful command output is discarded.
 
-```yaml
-actions:
-  - on: screen:connected
-    run: |
-      setup_audio
-      desk_lights on
+Each step has its own process group. Timeout or daemon shutdown sends SIGTERM to the group, allows two seconds for cleanup, then sends SIGKILL before reaping the leader and releasing its slot. The grace period also covers descendants when the leader exits first. A normally completed step cleans up leftover descendants before the next step starts; commands should not leave background jobs running. Deadlines use monotonic awake time, excluding time spent asleep.
+
+## CLI and service
+
+```text
+runon run [-c PATH]
+runon check [-c PATH]
+runon events
+runon start [-c PATH]
+runon stop
+runon restart [-c PATH]
+runon status
+runon logs
 ```
 
-Multiple sources or target events can be specified in a similar way:
+Without a subcommand, RunOn prints service status. `--config` is an alias for `-c`. `--help` and `--version` are also available. `check` only reads and validates the configuration.
 
-```yaml
-actions:
-  - on: |
-      screen:connected
-      screen:disconnected
-    with: |
-      Mi 27 NU
-      ROG 32U
-    run: echo 'display changed'
-```
+`start` validates the config, writes `~/Library/LaunchAgents/co.myrt.runon.plist` with absolute binary/config paths, and loads it in the current user's GUI session. Starting an already loaded service leaves its settings and process unchanged. The LaunchAgent starts at login and launchd restarts it after an unsuccessful exit, with a ten-second throttle. Keep the installed binary at its configured path.
 
-### Groups
+`restart` validates and prepares the new config before unloading the current service. Without `-c`, it preserves the config path stored in the installed LaunchAgent. An invalid config does not stop the running daemon. `stop` unloads the agent and retains its settings; `start` can load them again. `status` never modifies files or launchd state. Remove the saved plist after stopping if you also want to remove login startup.
 
-Several actions can be combined into groups. Within a group, you can set a minimum interval between two actions.
+Foreground diagnostics go to stderr. Service diagnostics use Unified Logging with subsystem `co.myrt.runon`; `logs` opens `/usr/bin/log stream` filtered to that subsystem. Commands inherit the foreground shell's environment when run interactively and launchd's environment as a service, with the same explicit HOME working directory and PATH policy.
 
-```yaml
-actions:
-  - on: screen:connected
-    with: Mi 27 NU
-    run: myrt_desk on
-    group: desk
-  - on: screen:disconnected
-    with: Mi 27 NU
-    run: myrt_desk off
-    group: desk
+To update an installed binary, rerun the installer or `make install`, then `runon restart`. RunOn 2 does not migrate old YAML files; create and validate a KDL configuration first.
 
-groups:
-  # avoid flickering
-  - name: desk
-    debounce: 5s
-```
-
-## Event sources
-
-The following event sources can be subscribed to:
-
-- `screen` — connected displays list change. declares `connected`, `disconnected`, `locked` and `unlocked` events. In `with` takes the display name.
-- `audio` — connected audio device list change. declares `connected` and `disconnected` events. In `with` takes the audio device name. Handles both input and output devices.
-- `app` — active application change. declares `activated`, `deactivated`, `launched` and `terminated` events. In `with` takes the app bundle identifier (like `com.microsoft.VSCode`). If the application does not have a bundleID, the name of the executable will be used as the fallback. To see which event the application emits, use the `runon print` command.
-
-## Usage
-
-### Service
-
-The background service can be started and stopped with the `runon` command.
+## Development and release
 
 ```sh
-runon start # starts the service
-runon stop # stops the service
+make check          # fmt, Clippy with -D warnings, tests
+make build-release  # release binary, ARM64 archive, SHA256SUMS, release notes
+make measure        # five-minute idle measurement + latency/event-flood benchmark
 ```
+
+The Cargo workspace has four crates. Shared dependency versions, package metadata and the release profile live in the root `Cargo.toml`; all crates share one `Cargo.lock` and `target/` directory.
+
+| Crate | Responsibility | Internal dependencies |
+| --- | --- | --- |
+| [`runon-core`](crates/runon-core) | KDL configuration, typed events, matching and clock-controlled scheduling rules; no platform APIs or unsafe code | None |
+| [`runon-macos`](crates/runon-macos) | Native event subscriptions, Dispatch/RunLoop/signal ownership and LaunchAgent integration | `runon-core` |
+| [`runon-runtime`](crates/runon-runtime) | Action execution, process groups, output capture, deadlines and the serial scheduler queue | `runon-core`, `runon-macos` |
+| [`runon`](crates/runon) | Binary entry point, CLI commands, logging and wiring the components together | All three libraries |
+
+The libraries never depend on the CLI. Native sources emit typed events through a callback and do not depend on the runtime. Process supervision stays private to `runon-runtime`; its public entry points are `Runtime` and `Report`. The core can be built and tested independently with `cargo test --locked -p runon-core`.
+
+The main thread runs CFRunLoop. A serial DispatchQueue owns scheduling and process lifecycle; native data, process, pipe, timer and signal sources drive work. There is no async runtime, periodic process check or idle timer. Only configured event sources are subscribed, plus wake notifications required for refreshing device/power snapshots.
+
+`cargo test --workspace` covers parsing, matching, scheduling, subprocess behavior and CLI behavior. Tests and executable examples live with their owning crates; user-facing KDL examples remain in the root `examples/` directory. The LaunchAgent integration test lives in `runon` because it exercises the assembled binary. It is explicit because it requires a GUI session and installs a temporary agent with a unique label:
+
+```sh
+cargo test --locked -p runon --test service -- --ignored --nocapture
+cargo run --locked -p runon-macos --example native_smoke
+```
+
+Hardware event delivery needs a real logged-in Mac. [Validation and measurements](docs/validation.md) describe the reproducible checks, measured results and outstanding hardware checks.
+
+Release builds use size optimization, LTO, one codegen unit, symbol stripping and abort-on-panic. Cargo.lock and the Rust toolchain are pinned. CI runs checks and packages on macOS 26 ARM64. A pushed `v*` tag must match Cargo's version and publishes `runon-macos-arm64.tar.gz` and `SHA256SUMS`; manually running the workflow only builds artifacts. Local packaging does not publish a release.

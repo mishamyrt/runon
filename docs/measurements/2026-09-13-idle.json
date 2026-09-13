@@ -1,0 +1,13 @@
+{
+  "macos": "27.0",
+  "architecture": "arm64",
+  "hardware": "Apple M3 Pro",
+  "binary_bytes": 773328,
+  "binary_sha256": "71ded6f5eb344cccbf80b91c63a4e6ecefb9cdc9c4b1ba589ff8d1700c7d2016",
+  "logging": "unified",
+  "sample_seconds": 300.005,
+  "cpu_percent_one_core": 0.00034772771820951756,
+  "physical_footprint_peak_bytes": 7619304,
+  "physical_footprint_final_bytes": 7521000,
+  "package_idle_wakeups": 0
+}

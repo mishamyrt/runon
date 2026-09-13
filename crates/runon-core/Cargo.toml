@@ -1,0 +1,11 @@
+[package]
+name = "runon-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Configuration, typed events and scheduling rules for RunOn"
+
+[dependencies]
+kdl.workspace = true

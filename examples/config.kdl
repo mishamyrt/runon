@@ -1,0 +1,29 @@
+max-parallel 4
+
+group desk {
+    debounce "500ms"
+}
+
+action desk-on group=desk {
+    on screen.connected name="Mi 27 NU"
+    timeout "5s"
+    exec "myrt_desk" "on"
+}
+
+action desk-off group=desk {
+    on screen.disconnected name="Mi 27 NU"
+    exec "myrt_desk" "off"
+}
+
+action after-wake {
+    on system.wake
+    exec "setup_audio"
+}
+
+action battery-mode {
+    on power.changed source=battery
+    shell #"""
+        desk_lights off
+        lunar set 60
+        """#
+}

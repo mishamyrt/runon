@@ -1,25 +1,30 @@
 name: Quality Assurance
 
 on:
-  - push
+  push:
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-    runs-on: macos-latest
+  check:
+    runs-on: macos-26
     steps:
-    - uses: actions/checkout@v4
-      name: Checkout
-    - uses: swift-actions/setup-swift@v2
-      name: Setup Swift
-      with:
-        swift-version: '5.10.1'
-    - name: Setup dependencies
-      run: make setup
-    - name: Setup linters
-      run: brew install swiftlint shellcheck
-    - name: Check build
-      run: make build
-    - name: Check code style
-      run: make lint
-    - name: Run tests
-      run: make test
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        run: rustup show
+      - name: Check formatting, Clippy and tests
+        run: make check
+      - name: Build and verify release archive
+        run: make build-release
+      - name: Validate example configurations
+        run: |
+          target/release/runon check -c examples/config.kdl
+          target/release/runon check -c examples/editors.kdl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runon-macos-arm64
+          path: |
+            dist/*.tar.gz
+            dist/SHA256SUMS

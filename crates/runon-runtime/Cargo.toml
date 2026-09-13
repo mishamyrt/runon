@@ -1,0 +1,19 @@
+[package]
+name = "runon-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Action execution and process supervision for RunOn"
+
+[dependencies]
+runon-core.workspace = true
+runon-macos.workspace = true
+libc.workspace = true
+log.workspace = true
+dispatch2.workspace = true
+
+[[test]]
+name = "runtime"
+harness = false

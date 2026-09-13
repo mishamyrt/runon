@@ -1,66 +1,28 @@
-VERSION := 1.0.6
-INSTALLATION_SCRIPT_FILE := scripts/install.sh
-BUILD_INFO_FILE := Sources/BuildInfo.swift
-BUILD_INFO_TEMPLATE := Sources/BuildInfo.template.swift
+.PHONY: build build-release check lint test install measure
 
-.PHONY: help
-help: ## print this message
-	@awk \
-		'BEGIN {FS = ":.*?## "} \
-		/^[a-zA-Z_-]+:.*?## / \
-		{printf "\033[33m%-15s\033[0m %s\n", $$1, $$2}' \
-		$(MAKEFILE_LIST)
+build:
+	cargo build --locked -p runon
 
-.PHONY: generate
-generate: ## generate build info
-	@bash build/generate-info.sh \
-		"${BUILD_INFO_TEMPLATE}" "${VERSION}" > "${BUILD_INFO_FILE}"
+lint:
+	cargo fmt --all --check
+	cargo clippy --locked --workspace --all-targets -- -D warnings
+	for script in scripts/install.sh build/package.sh build/generate-release-notes.sh; do bash -n "$$script"; done
 
-.PHONY: build
-build: generate ## build runon
-	swift build
-	rm -rf ./dist
-	mkdir ./dist
-	cp .build/debug/runon ./dist/runon
+test:
+	cargo test --locked --workspace
 
-.PHONY: build-release
-build-release: build
-	bash ./build/generate-release-notes.sh "v${VERSION}" > dist/notes.md
-	cd dist; zip -r runon.zip .
-
-.PHONY: lint
-lint: generate ## check code style
-	swiftlint lint --config .swiftlint.yaml .
-	shellcheck -a "${INSTALLATION_SCRIPT_FILE}"
-
-.PHONY: install
-install: ## install runon to the system
-	rm -f \
-		/usr/local/bin/runon \
-		/usr/local/bin/runond \
-		/usr/local/bin/runon-service \
-		/usr/local/bin/runon-daemon
-	cp dist/runon /usr/local/bin/runon
-
-.PHONY: test
-test: generate ## run tests
-	swift test
-
-.PHONY: setup
-setup: ## download dependencies
-	swift package resolve
-
-.PHONY: release
-publish: # release a new version
-	git tag "v${VERSION}"
-	git chglog -o CHANGELOG.md
-	git tag -d "v${VERSION}"
-	git add Makefile
-	git add CHANGELOG.md
-	git commit -m "chore: release v${VERSION}"
-	git tag "v${VERSION}"
-	git push
-	git push --tags
-
-.PHONY: check
 check: lint test
+
+build-release:
+	bash build/package.sh
+
+install:
+	cargo build --release --locked -p runon
+	mkdir -p "$(HOME)/.local/bin"
+	install -m 755 target/release/runon "$(HOME)/.local/bin/.runon-new"
+	mv -f "$(HOME)/.local/bin/.runon-new" "$(HOME)/.local/bin/runon"
+
+measure:
+	cargo build --release --locked -p runon
+	python3 scripts/measure.py --service
+	cargo run --release --locked -p runon-runtime --example benchmark

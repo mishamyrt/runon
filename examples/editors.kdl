@@ -1,0 +1,7 @@
+action editor-focus {
+    on app.activated bundle-id="com.microsoft.VSCode"
+    on app.activated bundle-id="com.apple.dt.Xcode"
+    timeout "10s"
+    exec "setup_audio"
+    exec "desk_lights" "on"
+}

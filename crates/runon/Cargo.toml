@@ -1,0 +1,21 @@
+[package]
+name = "runon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Run commands on macOS system events"
+
+[dependencies]
+runon-core.workspace = true
+runon-macos.workspace = true
+runon-runtime.workspace = true
+lexopt.workspace = true
+log.workspace = true
+oslog.workspace = true
+dispatch2.workspace = true
+objc2.workspace = true
+
+[dev-dependencies]
+libc.workspace = true

@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog][],
 and this project adheres to [Semantic Versioning][].
 
 
+## [v2.0.0]
+
+### Breaking changes
+
+- Replace the Swift implementation and YAML configuration with a Rust daemon and KDL 2.
+- Require Apple Silicon and macOS 26 or newer.
+- Install the binary in `~/.local/bin`; write configuration to `~/.config/runon/config.kdl`.
+
+### Features
+
+- Named actions, typed event filters, literal executable arguments and shell steps.
+- Bounded latest-event scheduling, group debounce, action deadlines and process-group cleanup.
+- Native display, audio, application, lock/unlock, wake and power-source notifications.
+- Config validation, event inspection, safe restart validation and Unified Logging.
+- Release-size checks, runtime integration tests and reproducible resource measurements.
+
 ## [v1.0.6](https://github.com/mishamyrt/runon/releases/tag/v1.0.6) - 2024-07-16
 ### Bug Fixes
 - correctly write colored log to file

@@ -1,8 +1,0 @@
-actions:
-  - on: screen:connected
-    with: Mi 27 NU
-    run: 'myrt_desk on'
-
-  - on: screen:disconnected
-    with: Mi 27 NU
-    run: 'myrt_desk off'
