@@ -1,11 +1,23 @@
-//! Native subscriptions. AppKit access stays on the main thread; snapshots hold
+//! Native subscriptions. `AppKit` access stays on the main thread; snapshots hold
 //! owned Rust values, never borrowed Objective-C pointers.
 use crate::native::{Source, SourceKind};
 use block2::RcBlock;
 use dispatch2::DispatchQueue;
 use objc2::{MainThreadMarker, Message, rc::Retained, runtime::ProtocolObject};
-use objc2_app_kit::*;
-use objc2_core_audio::*;
+use objc2_app_kit::{
+    NSApplication, NSApplicationActivationPolicy,
+    NSApplicationDidChangeScreenParametersNotification, NSRunningApplication, NSScreen,
+    NSWorkspace, NSWorkspaceApplicationKey, NSWorkspaceDidActivateApplicationNotification,
+    NSWorkspaceDidDeactivateApplicationNotification, NSWorkspaceDidLaunchApplicationNotification,
+    NSWorkspaceDidTerminateApplicationNotification, NSWorkspaceDidWakeNotification,
+};
+use objc2_core_audio::{
+    AudioObjectAddPropertyListenerBlock, AudioObjectGetPropertyData,
+    AudioObjectGetPropertyDataSize, AudioObjectPropertyAddress,
+    AudioObjectRemovePropertyListenerBlock, kAudioDevicePropertyDeviceUID,
+    kAudioHardwarePropertyDevices, kAudioObjectPropertyElementMain, kAudioObjectPropertyName,
+    kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
+};
 use objc2_core_foundation::{CFRetained, CFString};
 use objc2_foundation::{
     NSDistributedNotificationCenter, NSNotification, NSNotificationCenter, NSNumber,
@@ -109,12 +121,13 @@ struct Snapshots {
 
 pub struct Sources {
     alive: Arc<AtomicBool>,
-    _observers: Vec<Observer>,
-    _audio: Option<AudioListener>,
-    _power: Option<PowerListener>,
+    observers: Vec<Observer>,
+    audio_listener: Option<AudioListener>,
+    power_listener: Option<PowerListener>,
 }
 
 impl Sources {
+    #[allow(clippy::needless_pass_by_value)] // The subscription owns its interest filter.
     pub fn subscribe(kinds: BTreeSet<Kind>, emit: Emit) -> Result<Self, String> {
         let mtm = MainThreadMarker::new().ok_or("event sources must start on the main thread")?;
         let alive = Arc::new(AtomicBool::new(true));
@@ -133,9 +146,9 @@ impl Sources {
         let snapshots = Arc::new(Mutex::new(Snapshots::default()));
         let mut result = Self {
             alive,
-            _observers: Vec::new(),
-            _audio: None,
-            _power: None,
+            observers: Vec::new(),
+            audio_listener: None,
+            power_listener: None,
         };
         if kinds.is_empty() {
             return Ok(result);
@@ -190,7 +203,7 @@ impl Sources {
             }
             let emit = emit.clone();
             result
-                ._observers
+                .observers
                 .push(Observer::new(&workspace, name, move |n| {
                     let Some(info) = n.userInfo() else {
                         return;
@@ -213,7 +226,7 @@ impl Sources {
         }
         if screen {
             let refresh = refreshers[0].clone().unwrap();
-            result._observers.push(Observer::new(
+            result.observers.push(Observer::new(
                 &NSNotificationCenter::defaultCenter(),
                 unsafe { NSApplicationDidChangeScreenParametersNotification },
                 move |_| {
@@ -231,7 +244,7 @@ impl Sources {
             }
             let state = snapshots.clone();
             let out = emit.clone();
-            result._observers.push(Observer::new(
+            result.observers.push(Observer::new(
                 &NSDistributedNotificationCenter::defaultCenter(),
                 &NSString::from_str(name),
                 move |_| {
@@ -262,7 +275,7 @@ impl Sources {
             if code != 0 {
                 return Err(format!("subscribing to audio devices: OSStatus {code}"));
             }
-            result._audio = Some(AudioListener { block });
+            result.audio_listener = Some(AudioListener { block });
         }
         if power {
             let refresh = refreshers[2].clone().unwrap();
@@ -273,7 +286,7 @@ impl Sources {
             let code = unsafe {
                 notify_register_dispatch(
                     c"com.apple.system.powersources.source".as_ptr(),
-                    &mut token,
+                    &raw mut token,
                     DispatchQueue::main(),
                     &block,
                 )
@@ -281,11 +294,11 @@ impl Sources {
             if code != 0 {
                 return Err(format!("subscribing to power source: notify status {code}"));
             }
-            result._power = Some(PowerListener(token));
+            result.power_listener = Some(PowerListener(token));
         }
         if screen || audio || power || kinds.contains(&Kind::Wake) {
             let out = emit.clone();
-            result._observers.push(Observer::new(
+            result.observers.push(Observer::new(
                 &workspace,
                 unsafe { NSWorkspaceDidWakeNotification },
                 move |_| {
@@ -360,11 +373,14 @@ fn refresh(state: &Mutex<Snapshots>, emit: &Emit, screen: bool, audio: bool, pow
 fn screens() -> Result<BTreeMap<u32, Event>, String> {
     let mtm = MainThreadMarker::new().ok_or("screen query outside main thread")?;
     let mut result = BTreeMap::new();
-    for screen in NSScreen::screens(mtm).iter() {
+    for screen in &NSScreen::screens(mtm) {
         let description = screen.deviceDescription();
         let id = description
             .objectForKey(&NSString::from_str("NSScreenNumber"))
-            .and_then(|n| n.downcast_ref::<NSNumber>().map(|n| n.unsignedIntValue()))
+            .and_then(|n| {
+                n.downcast_ref::<NSNumber>()
+                    .map(objc2_foundation::NSNumber::unsignedIntValue)
+            })
             .ok_or("display has no numeric ID")?;
         let mut event =
             Event::new(Kind::ScreenConnected).text("name", screen.localizedName().to_string());
@@ -451,7 +467,7 @@ fn audio_devices() -> Result<BTreeMap<String, Event>, String> {
 fn audio_string(id: u32, selector: u32) -> Result<String, String> {
     let mut addr = address(selector);
     let mut value: *mut CFString = std::ptr::null_mut();
-    let mut size = std::mem::size_of_val(&value) as u32;
+    let mut size = u32::try_from(std::mem::size_of_val(&value)).unwrap();
     let code = unsafe {
         AudioObjectGetPropertyData(
             id,

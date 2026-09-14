@@ -15,6 +15,7 @@ cargo run --locked -p runon-macos --example native_smoke
 | --- | --- |
 | Config | Bundled KDL examples, Unicode and raw strings, exact field matching, missing fields, OR/AND, numeric IDs, every matching action, forward group references; invalid nodes/types/events/filters/durations/duplicates and Unicode line/column positions |
 | Scheduler | Controlled monotonic clock, ordered batches, latest pending replacement, debounce reset, independent groups, concurrency limit, readiness FIFO, shutdown, bounded pending storage under thousands of replacements |
+| Runtime boundaries | Replacements before the first dispatch preserve FIFO and latest batch contents, with and without debounce; report callbacks can access the runtime queue; unread stderr and a flooded log queue preserve process timeouts and SIGTERM shutdown |
 | Processes | 100 rapid exits, spawn failure, literal argv, sequential failure, following batch actions, 2 MB per output stream with exact 64 KiB tails, timeout, SIGTERM/SIGKILL escalation, killed descendant, slot reuse, graceful daemon shutdown |
 | CLI/install | Config paths/defaults, invalid arguments, empty config staying asleep, SIGTERM shutdown; installer paths with spaces and checksum rejection preserving the previous binary |
 | LaunchAgent | Isolated start/status/restart/stop, idempotent start, retained config path, invalid restart preserving PID, recovery after SIGKILL, restart waiting for a slow SIGTERM handler, retained settings after stop |
@@ -40,7 +41,7 @@ cargo run --release --locked -p runon-runtime --example benchmark > /tmp/runon-e
 
 The engine benchmark takes 1,000 sequential `/usr/bin/true` samples after 20 warm-ups. Each sample is timed from acceptance into `Runtime::submit` to immediately before the first `Command::spawn` call, including rule matching and dispatch. Report delivery happens afterward, so the measurement excludes report callback timing. No group is busy and no debounce is configured. This measures launch initiation, not OS notification delivery or time until the new program executes its first instruction.
 
-It then submits 1,000,000 typed events, sampling its own physical footprint every 10,000 events. This exercises the same bounded inbox, matching, scheduler and subprocess engine used by the daemon. It measures engine memory under a flood, not a million physical device transitions. Benchmark reports are drained so their channel does not masquerade as daemon memory growth. Native refresh requests also use coalesced DispatchSources, rather than one queued task per notification.
+It then submits 1,000,000 typed events, sampling its own physical footprint every 10,000 events. This exercises the same matching, bounded scheduler and subprocess engine used by the daemon. It measures engine memory under a flood, not a million physical device transitions. Benchmark reports are drained so their channel does not masquerade as daemon memory growth. Native refresh requests also use coalesced DispatchSources, rather than one queued task per notification.
 
 | Metric | Target |
 | --- | --- |

@@ -143,6 +143,10 @@ impl Scheduler {
         }
     }
 
+    pub fn is_stopped(&self) -> bool {
+        self.stopped
+    }
+
     pub fn pending_count(&self) -> usize {
         self.slots.iter().filter(|s| s.pending.is_some()).count()
     }

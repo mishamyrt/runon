@@ -171,6 +171,8 @@ Without a subcommand, RunOn prints service status. `--config` is an alias for `-
 
 Foreground diagnostics go to stderr. Service diagnostics use Unified Logging with subsystem `co.myrt.runon`; `logs` opens `/usr/bin/log stream` filtered to that subsystem. Commands inherit the foreground shell's environment when run interactively and launchd's environment as a service, with the same explicit HOME working directory and PATH policy.
 
+Diagnostic writes run on a separate thread with a queue of 16 records. If the log destination stalls and the queue fills, new records are dropped; a warning reports the count when writing resumes. Process timeouts and shutdown continue independently. On exit, RunOn waits at most 100 ms for queued diagnostics; remaining records may be lost.
+
 To update an installed binary, rerun the installer or `make install`, then `runon restart`. RunOn 2 does not migrate old YAML files; create and validate a KDL configuration first.
 
 ## Development and release
@@ -181,19 +183,19 @@ make build-release  # release binary, ARM64 archive, SHA256SUMS, release notes
 make measure        # five-minute idle measurement + latency/event-flood benchmark
 ```
 
-The Cargo workspace has five crates. Shared dependency versions, package metadata and the release profile live in the root `Cargo.toml`; all crates share one `Cargo.lock` and `target/` directory.
+The Cargo workspace has five crates. Shared dependency versions, package metadata, lint policy and the release profile live in the root `Cargo.toml`; every crate opts into the workspace lints, and all crates share one `Cargo.lock` and `target/` directory.
 
 | Crate | Responsibility | Internal dependencies |
 | --- | --- | --- |
 | [`runon-core`](crates/runon-core) | Typed events and clock-controlled scheduling rules; no platform APIs or unsafe code | None |
-| [`runon-config`](crates/runon-config) | Configuration structures, KDL loading, parsing and validation | `runon-core` |
+| [`runon-config`](crates/runon-config) | Configuration structures, KDL loading, parsing, validation and event-selector formatting | `runon-core` |
 | [`runon-macos`](crates/runon-macos) | Native event subscriptions, Dispatch/RunLoop/signal ownership, system paths and LaunchAgent integration | `runon-config`, `runon-core` |
 | [`runon-runtime`](crates/runon-runtime) | Event matching, action execution, process groups, output capture, deadlines and the serial scheduler queue | `runon-config`, `runon-core`, `runon-macos` |
 | [`runon`](crates/runon) | Binary entry point, CLI commands, logging and wiring the components together | All four libraries |
 
-The libraries never depend on the CLI. Native sources emit typed events through a callback and do not depend on the runtime. Process supervision stays private to `runon-runtime`; its public entry points are `Runtime` and `Report`. The scheduler receives the parallelism limit and group debounce durations without depending on the configuration parser. `runon-config` reads an explicitly supplied path; `runon-macos::paths` owns home/config path discovery and the command search path. The core and configuration crates can be built and tested independently of macOS with `cargo test --locked -p runon-core -p runon-config`.
+The libraries never depend on the CLI. Native sources emit typed events through a callback and do not depend on the runtime. Process supervision stays private to `runon-runtime`; its public entry points are `Runtime` and `Report`. The scheduler receives the parallelism limit and group debounce durations without depending on the configuration parser; `runon-core` has no external dependencies. `runon-config` reads an explicitly supplied path and formats observed events with `format_selector`; `runon-macos::paths` owns home/config path discovery and the command search path. The core and configuration crates can be built and tested independently of macOS with `cargo test --locked -p runon-core -p runon-config`.
 
-The main thread runs CFRunLoop. A serial DispatchQueue owns scheduling and process lifecycle; native data, process, pipe, timer and signal sources drive work. There is no async runtime, periodic process check or idle timer. Only configured event sources are subscribed, plus wake notifications required for refreshing device/power snapshots.
+The main thread runs AppKit's event loop. `Runtime::submit` matches events and updates the bounded scheduler under a short mutex; the scheduler alone owns pending replacement and readiness order. A serial DispatchQueue selects ready groups and drives process lifecycle through native data, process, pipe, timer and signal sources. Report callbacks run on that queue outside state locks and must be nonblocking; the CLI sends diagnostic writes to its log worker. There is no async runtime, periodic process check or idle timer. Only configured event sources are subscribed, plus wake notifications required for refreshing device/power snapshots.
 
 `cargo test --workspace` covers parsing, matching, scheduling, subprocess behavior and CLI behavior. Tests and executable examples live with their owning crates; user-facing KDL examples remain in the root `examples/` directory. The LaunchAgent integration test lives in `runon` because it exercises the assembled binary. It is explicit because it requires a GUI session and installs a temporary agent with a unique label:
 

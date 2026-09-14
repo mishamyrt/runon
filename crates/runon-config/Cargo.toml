@@ -10,3 +10,6 @@ description = "KDL configuration loading, parsing and validation for RunOn"
 [dependencies]
 runon-core.workspace = true
 kdl.workspace = true
+
+[lints]
+workspace = true

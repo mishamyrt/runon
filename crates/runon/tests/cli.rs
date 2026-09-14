@@ -59,7 +59,7 @@ fn examples_errors_and_defaults() {
         "empty daemon must keep sleeping"
     );
     unsafe {
-        libc::kill(child.id() as i32, libc::SIGTERM);
+        libc::kill(child.id().try_into().unwrap(), libc::SIGTERM);
     }
     let deadline = std::time::Instant::now() + Duration::from_secs(5);
     loop {

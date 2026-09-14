@@ -3,13 +3,27 @@
 #![forbid(unsafe_code)]
 
 use kdl::{KdlDocument, KdlEntry, KdlNode};
-use runon_core::event::{Kind, Value};
+use runon_core::event::{Event, Kind, Value};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt, fs,
     path::Path,
     time::Duration,
 };
+
+/// Format an observed event as a selector accepted by the configuration parser.
+pub fn format_selector(event: &Event) -> String {
+    let mut node = KdlNode::new("on");
+    node.push(event.kind.name());
+    for (key, value) in &event.fields {
+        let value = match value {
+            Value::Text(s) => kdl::KdlValue::String(s.clone()),
+            Value::Id(id) => kdl::KdlValue::Integer(i128::from(*id)),
+        };
+        node.push(KdlEntry::new_prop(key.as_str(), value));
+    }
+    node.to_string().trim_end().to_owned()
+}
 
 #[derive(Clone, Debug)]
 pub struct Selector {

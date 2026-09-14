@@ -1,5 +1,6 @@
-//! Real NSWorkspace delivery with a temporary app opened without activation:
-//! cargo run -p runon-macos --locked --example native_smoke
+//! Real `NSWorkspace` delivery with a temporary app opened without activation:
+//! `cargo run -p runon-macos --locked --example native_smoke`
+#![allow(clippy::print_stdout, clippy::print_stderr)] // Interactive validation output.
 use dispatch2::DispatchQueue;
 use objc2::MainThreadMarker;
 use objc2_app_kit::{
@@ -126,7 +127,7 @@ fn main() {
     );
     let events = events.lock().unwrap();
     for event in events.iter() {
-        println!("{}", event.selector());
+        println!("{}", runon_config::format_selector(event));
     }
     for kind in [Kind::AppLaunched, Kind::AppTerminated] {
         assert!(

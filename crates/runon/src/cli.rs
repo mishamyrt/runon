@@ -1,3 +1,4 @@
+#![allow(clippy::print_stdout)] // CLI responses are the purpose of this module.
 use crate::logging;
 use runon_config::Config;
 use runon_core::event::Kind;
@@ -53,7 +54,7 @@ pub fn run() -> Result<(), String> {
             let stop = runtime.clone();
             let _signals = Signals::new(&runtime.queue(), Arc::new(move || stop.shutdown()))
                 .map_err(|e| e.to_string())?;
-            let out = runtime.clone();
+            let out = runtime;
             let _sources = objc2::rc::autoreleasepool(|_| {
                 Sources::subscribe(kinds, Arc::new(move |e| out.submit(e)))
             })?;
@@ -73,7 +74,9 @@ pub fn run() -> Result<(), String> {
                     Kind::ALL.into(),
                     Arc::new(|e| {
                         use std::io::Write;
-                        if writeln!(std::io::stdout(), "{}", e.selector()).is_err() {
+                        if writeln!(std::io::stdout(), "{}", runon_config::format_selector(&e))
+                            .is_err()
+                        {
                             runon_macos::native::stop_main();
                         }
                     }),

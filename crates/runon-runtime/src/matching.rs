@@ -84,8 +84,11 @@ mod tests {
         assert_eq!(matcher.batches(&event)[&0], vec![1]);
         event.fields.insert("id".into(), Value::Id(12));
         assert_eq!(matcher.batches(&event)[&0], vec![0, 1]);
-        let round_trip =
-            Config::parse(&format!("action x {{ {}; exec p; }}", event.selector())).unwrap();
+        let round_trip = Config::parse(&format!(
+            "action x {{ {}; exec p; }}",
+            runon_config::format_selector(&event)
+        ))
+        .unwrap();
         assert_eq!(
             Matcher::new(Arc::new(round_trip)).batches(&event)[&0],
             vec![0]

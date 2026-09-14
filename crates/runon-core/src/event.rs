@@ -86,22 +86,10 @@ impl Event {
         }
     }
 
+    #[must_use]
     pub fn text(mut self, key: &str, value: impl Into<String>) -> Self {
         self.fields.insert(key.into(), Value::Text(value.into()));
         self
-    }
-
-    pub fn selector(&self) -> String {
-        let mut node = kdl::KdlNode::new("on");
-        node.push(self.kind.name());
-        for (key, value) in &self.fields {
-            let value = match value {
-                Value::Text(s) => kdl::KdlValue::String(s.clone()),
-                Value::Id(id) => kdl::KdlValue::Integer(i128::from(*id)),
-            };
-            node.push(kdl::KdlEntry::new_prop(key.as_str(), value));
-        }
-        node.to_string().trim_end().to_owned()
     }
 }
 

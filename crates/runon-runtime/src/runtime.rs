@@ -31,21 +31,10 @@ pub enum Report {
     Stopped,
 }
 
-struct Envelope {
-    actions: Vec<usize>,
-    at: Duration,
-    order: u64,
-}
-struct Inbox {
-    slots: Vec<Option<Envelope>>,
-    order: u64,
-    stop: bool,
-}
-
 #[derive(Clone)]
 pub struct Runtime {
     matcher: Arc<Matcher>,
-    inbox: Arc<Mutex<Inbox>>,
+    scheduler: Arc<Mutex<Scheduler>>,
     wake: Arc<Source>,
     state: Arc<Mutex<State>>,
     clock: Instant,
@@ -58,9 +47,8 @@ struct Active {
 }
 struct State {
     config: Arc<Config>,
-    scheduler: Scheduler,
+    scheduler: Arc<Mutex<Scheduler>>,
     active: Vec<Option<Active>>,
-    inbox: Arc<Mutex<Inbox>>,
     queue: DispatchRetained<DispatchQueue>,
     weak: Weak<Mutex<State>>,
     timer: Option<Source>,
@@ -74,12 +62,20 @@ struct State {
 fn callback(weak: Weak<Mutex<State>>) -> impl Fn() + Send + Sync + 'static {
     move || {
         if let Some(state) = weak.upgrade() {
-            state.lock().unwrap().drive();
+            let (report, reports) = {
+                let mut state = state.lock().unwrap();
+                (state.report.clone(), state.drive())
+            };
+            for event in reports {
+                report(event);
+            }
         }
     }
 }
 
 impl Runtime {
+    /// Reports run on the scheduler queue, outside its state locks. The callback
+    /// must not block or panic; hand blocking I/O off to a separate worker.
     pub fn new(
         config: Config,
         report: impl Fn(Report) + Send + Sync + 'static,
@@ -87,20 +83,15 @@ impl Runtime {
         let home = paths::home()?;
         let config = Arc::new(config);
         let clock = Instant::now();
-        let inbox = Arc::new(Mutex::new(Inbox {
-            slots: (0..config.groups.len()).map(|_| None).collect(),
-            order: 0,
-            stop: false,
-        }));
+        let scheduler = Arc::new(Mutex::new(Scheduler::new(
+            config.max_parallel,
+            config.groups.iter().map(|group| group.debounce).collect(),
+        )));
         let state = Arc::new_cyclic(|weak| {
             Mutex::new(State {
                 active: (0..config.groups.len()).map(|_| None).collect(),
                 config: config.clone(),
-                scheduler: Scheduler::new(
-                    config.max_parallel,
-                    config.groups.iter().map(|group| group.debounce).collect(),
-                ),
-                inbox: inbox.clone(),
+                scheduler: scheduler.clone(),
                 queue: DispatchQueue::new("co.myrt.runon.scheduler", None),
                 weak: weak.clone(),
                 timer: None,
@@ -128,35 +119,31 @@ impl Runtime {
         drop(s);
         Ok(Self {
             matcher: Arc::new(Matcher::new(config)),
-            inbox,
+            scheduler,
             wake,
             state,
             clock,
         })
     }
 
+    #[allow(clippy::needless_pass_by_value)] // Consuming event sink for native callbacks.
     pub fn submit(&self, event: Event) {
         let at = self.clock.elapsed();
         let batches = self.matcher.batches(&event);
         if batches.is_empty() {
             return;
         }
-        let mut inbox = self.inbox.lock().unwrap();
-        if inbox.stop {
-            return;
-        }
-        inbox.order += 1;
-        let order = inbox.order;
+        let mut scheduler = self.scheduler.lock().unwrap();
         for (group, actions) in batches {
-            inbox.slots[group] = Some(Envelope { actions, at, order });
+            scheduler.enqueue(group, actions, at);
         }
-        drop(inbox);
+        drop(scheduler);
         // Coalesced native wakeup, never one queued closure per incoming event.
         self.wake.wake();
     }
 
     pub fn shutdown(&self) {
-        self.inbox.lock().unwrap().stop = true;
+        self.scheduler.lock().unwrap().stop();
         self.wake.wake();
     }
 
@@ -175,29 +162,20 @@ impl State {
         });
     }
 
-    fn drive(&mut self) {
+    fn drive(&mut self) -> Vec<Report> {
+        let mut reports = Vec::new();
         let now = self.clock.elapsed();
-        let mut inbox = self.inbox.lock().unwrap();
-        let stop = inbox.stop;
-        let mut messages: Vec<_> = inbox
-            .slots
-            .iter_mut()
-            .enumerate()
-            .filter_map(|(g, s)| s.take().map(|e| (g, e)))
-            .collect();
-        drop(inbox);
-        messages.sort_unstable_by_key(|(_, e)| e.order);
-        for (group, e) in messages {
-            self.scheduler.enqueue(group, e.actions, e.at);
-        }
+        let (stop, starts) = {
+            let mut scheduler = self.scheduler.lock().unwrap();
+            (scheduler.is_stopped(), scheduler.poll(now))
+        };
         if stop && !self.stopped {
             self.stopped = true;
-            self.scheduler.stop();
             for active in self.active.iter_mut().flatten() {
                 active.process.terminate(now, "daemon stopped");
             }
         }
-        for start in self.scheduler.poll(now) {
+        for start in starts {
             self.start(start);
         }
         let wake: Arc<dyn Fn() + Send + Sync> = Arc::new(callback(self.weak.clone()));
@@ -216,7 +194,7 @@ impl State {
                 if !active.reported_start
                     && let Some(at) = active.process.started_at()
                 {
-                    (self.report)(Report::Started {
+                    reports.push(Report::Started {
                         name: action.name.clone(),
                         latency: at
                             .duration_since(self.clock)
@@ -227,7 +205,7 @@ impl State {
                 let Some(result) = result else {
                     break;
                 };
-                (self.report)(Report::Finished {
+                reports.push(Report::Finished {
                     name: action.name.clone(),
                     success: result.success,
                     reason: result.reason,
@@ -235,7 +213,12 @@ impl State {
                     stderr: result.stderr,
                 });
                 self.active[group] = None;
-                if let Some(next) = self.scheduler.finished(group, self.clock.elapsed()) {
+                let next = self
+                    .scheduler
+                    .lock()
+                    .unwrap()
+                    .finished(group, self.clock.elapsed());
+                if let Some(next) = next {
                     self.start(next);
                 }
             }
@@ -245,6 +228,8 @@ impl State {
         let now = self.clock.elapsed();
         let deadline = self
             .scheduler
+            .lock()
+            .unwrap()
             .deadline(now)
             .into_iter()
             .chain(
@@ -261,7 +246,8 @@ impl State {
         if self.stopped && !self.notified_stop && self.active.iter().all(Option::is_none) {
             self.notified_stop = true;
             self.timer.as_ref().unwrap().arm(None);
-            (self.report)(Report::Stopped);
+            reports.push(Report::Stopped);
         }
+        reports
     }
 }

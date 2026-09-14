@@ -1,4 +1,5 @@
 //! Run with `cargo run -p runon-runtime --release --example benchmark` on an otherwise idle Mac.
+#![allow(clippy::print_stdout)] // Machine-readable benchmark output.
 use runon_config::Config;
 use runon_core::event::{Event, Kind};
 use runon_runtime::{Report, Runtime};
@@ -11,9 +12,9 @@ fn footprint() -> u64 {
     let mut info: libc::rusage_info_v0 = unsafe { std::mem::zeroed() };
     let result = unsafe {
         libc::proc_pid_rusage(
-            std::process::id() as i32,
+            std::process::id().try_into().unwrap(),
             0,
-            (&mut info as *mut libc::rusage_info_v0).cast(),
+            (&raw mut info).cast(),
         )
     };
     assert_eq!(result, 0);
@@ -35,7 +36,7 @@ fn main() {
         loop {
             match rx.recv_timeout(Duration::from_secs(10)).unwrap() {
                 Report::Started { latency, .. } if i >= 20 => {
-                    latencies.push(latency.as_secs_f64() * 1000.0)
+                    latencies.push(latency.as_secs_f64() * 1000.0);
                 }
                 Report::Finished { success, .. } => {
                     assert!(success);

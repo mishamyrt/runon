@@ -41,7 +41,12 @@ impl Pipe {
         if flags < 0 || unsafe { libc::fcntl(raw, libc::F_SETFL, flags | libc::O_NONBLOCK) } < 0 {
             return Err(io::Error::last_os_error());
         }
-        let watch = Source::new(SourceKind::Read, raw as usize, queue, move || wake());
+        let watch = Source::new(
+            SourceKind::Read,
+            usize::try_from(raw).unwrap(),
+            queue,
+            move || wake(),
+        );
         watch.hold_file(file.clone());
         Ok(Self {
             file,
@@ -65,7 +70,7 @@ impl Pipe {
                     self.tail.extend(&buf[..n]);
                 }
                 Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
-                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                Err(e) if e.kind() == io::ErrorKind::Interrupted => {}
                 Err(e) => return Err(e),
             }
         }
@@ -93,7 +98,7 @@ impl ChildState {
             libc::waitid(
                 libc::P_PID,
                 self.child.id(),
-                &mut info,
+                &raw mut info,
                 libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
             )
         };
@@ -106,7 +111,7 @@ impl ChildState {
     fn signal(&self, signal: i32) {
         if !self.reaped {
             // SAFETY: the negative, unreaped child PID names only this command's group.
-            let result = unsafe { libc::kill(-(self.child.id() as i32), signal) };
+            let result = unsafe { libc::kill(-i32::try_from(self.child.id()).unwrap(), signal) };
             if result != 0 && io::Error::last_os_error().raw_os_error() != Some(libc::ESRCH) {
                 log::error!(
                     "cannot signal process group {}: {}",
@@ -213,7 +218,8 @@ impl Process {
             child.reaped = true;
             let _ = child.stdout.drain();
             let _ = child.stderr.drain();
-            let success = status.as_ref().is_ok_and(|s| s.success()) && self.terminating.is_none();
+            let success = status.as_ref().is_ok_and(std::process::ExitStatus::success)
+                && self.terminating.is_none();
             if !success {
                 return Some(Outcome {
                     success: false,
@@ -287,7 +293,7 @@ impl Process {
                 }),
                 Err(e) => {
                     unsafe {
-                        libc::kill(-(pid as i32), libc::SIGKILL);
+                        libc::kill(-i32::try_from(pid).unwrap(), libc::SIGKILL);
                     }
                     let _ = child.wait();
                     Err(e)

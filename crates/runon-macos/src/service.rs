@@ -58,11 +58,11 @@ impl LaunchAgent {
             binary,
         }
     }
-    fn domain(&self) -> String {
+    fn domain() -> String {
         format!("gui/{}", unsafe { libc::geteuid() })
     }
     fn target(&self) -> String {
-        format!("{}/{}", self.domain(), self.label)
+        format!("{}/{}", Self::domain(), self.label)
     }
     pub fn path(&self) -> PathBuf {
         self.home
@@ -70,15 +70,15 @@ impl LaunchAgent {
             .join(format!("{}.plist", self.label))
     }
 
-    fn launchctl(&self, args: &[&str]) -> Result<Output, String> {
+    fn launchctl(args: &[&str]) -> Result<Output, String> {
         Command::new("/bin/launchctl")
             .args(args)
             .output()
             .map_err(|e| format!("launchctl: {e}"))
     }
 
-    fn checked(&self, args: &[&str]) -> Result<(), String> {
-        let out = self.launchctl(args)?;
+    fn checked(args: &[&str]) -> Result<(), String> {
+        let out = Self::launchctl(args)?;
         if !out.status.success() {
             return Err(format!(
                 "launchctl {}: {}",
@@ -90,7 +90,7 @@ impl LaunchAgent {
     }
 
     fn inspection(&self) -> Result<Option<String>, String> {
-        let output = self.launchctl(&["print", &self.target()])?;
+        let output = Self::launchctl(&["print", &self.target()])?;
         if output.status.success() {
             return Ok(Some(String::from_utf8_lossy(&output.stdout).into_owned()));
         }
@@ -111,11 +111,16 @@ impl LaunchAgent {
         let (tx, rx) = mpsc::sync_channel(1);
         // Observe before bootout: launchctl can return before the process exits.
         let _exit = pid.map(|pid| {
-            Source::new(SourceKind::Process, pid as usize, &queue, move || {
-                let _ = tx.try_send(());
-            })
+            Source::new(
+                SourceKind::Process,
+                usize::try_from(pid).unwrap(),
+                &queue,
+                move || {
+                    let _ = tx.try_send(());
+                },
+            )
         });
-        self.checked(&["bootout", &self.target()])?;
+        Self::checked(&["bootout", &self.target()])?;
         if let Some(pid) = pid {
             // The process may have exited even before observer registration.
             let gone = unsafe { libc::kill(pid, 0) } != 0
@@ -157,7 +162,10 @@ impl LaunchAgent {
             .ok_or("agent has no ProgramArguments")?;
         let args: Vec<_> = args
             .iter()
-            .map(|v| v.downcast_ref::<NSString>().map(|s| s.to_string()))
+            .map(|v| {
+                v.downcast_ref::<NSString>()
+                    .map(std::string::ToString::to_string)
+            })
             .collect();
         for pair in args.windows(2) {
             if matches!(pair[0].as_deref(), Some("-c" | "--config")) {
@@ -255,9 +263,9 @@ impl LaunchAgent {
                 self.unload(inspection)?;
             }
             fs::rename(&staging, &agent).map_err(|e| e.to_string())?;
-            self.checked(&[
+            Self::checked(&[
                 "bootstrap",
-                &self.domain(),
+                &Self::domain(),
                 agent.to_str().ok_or("agent path must be UTF-8")?,
             ])
         })();

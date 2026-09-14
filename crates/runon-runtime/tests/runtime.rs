@@ -1,9 +1,13 @@
+#![allow(clippy::print_stdout)] // Standalone test summary.
 use runon_config::Config;
 use runon_core::event::{Event, Kind};
 use runon_runtime::{OUTPUT_LIMIT, Report, Runtime};
 use std::{
     fs,
-    sync::mpsc::{self, Receiver},
+    sync::{
+        Arc, OnceLock, Weak,
+        mpsc::{self, Receiver},
+    },
     time::{Duration, Instant},
 };
 
@@ -31,6 +35,7 @@ fn send(runtime: &Runtime, tag: &str) {
 }
 
 fn main() {
+    replacement_order_and_callback_reentry();
     let dir = std::env::temp_dir().join(format!("runon-runtime-{}", std::process::id()));
     fs::create_dir(&dir).unwrap();
     let escaped = dir.join("literal $HOME with spaces");
@@ -141,4 +146,62 @@ fn main() {
     println!(
         "runtime: 100 fast exits, literal argv, sequential failure, bounded output, batch ordering, timeout, process-group cleanup and shutdown passed"
     );
+}
+
+fn replacement_order_and_callback_reentry() {
+    for (debounce, expected) in [(0, ["a", "b"]), (80, ["b", "a"])] {
+        let config = Config::parse(&format!(
+            r#"
+            max-parallel 1
+            group a {{ debounce "{debounce}ms"; }}
+            action old group=a {{ on app.activated name=old; exec "/usr/bin/true"; }}
+            action a group=a {{ on app.activated name=a; exec "/usr/bin/true"; }}
+            action b {{ on app.activated name=b; exec "/usr/bin/true"; }}
+        "#
+        ))
+        .unwrap();
+        let handle = Arc::new(OnceLock::<Weak<Runtime>>::new());
+        let callback_handle = handle.clone();
+        let (tx, rx) = mpsc::channel();
+        let runtime = Arc::new(
+            Runtime::new(config, move |report| {
+                // This used to deadlock because reports held the State mutex.
+                let runtime = callback_handle.get().unwrap().upgrade().unwrap();
+                let _queue = runtime.queue();
+                tx.send(report).unwrap();
+            })
+            .unwrap(),
+        );
+        handle.set(Arc::downgrade(&runtime)).unwrap();
+        let input = runtime.clone();
+        runtime.queue().exec_sync(move || {
+            // No drive can interleave with these three submissions.
+            for name in ["old", "b", "a"] {
+                input.submit(Event::new(Kind::AppActivated).text("name", name));
+            }
+        });
+        let mut started = Vec::new();
+        let mut completed = 0;
+        while completed < 2 {
+            match rx.recv_timeout(Duration::from_secs(5)).unwrap() {
+                Report::Started { name, latency } => {
+                    if name == "a" {
+                        assert!(latency >= Duration::from_millis(debounce));
+                    }
+                    started.push(name);
+                }
+                Report::Finished { success, .. } => {
+                    assert!(success);
+                    completed += 1;
+                }
+                Report::Stopped => panic!("unexpected stop"),
+            }
+        }
+        assert_eq!(started, expected);
+        runtime.shutdown();
+        assert!(matches!(
+            rx.recv_timeout(Duration::from_secs(5)).unwrap(),
+            Report::Stopped
+        ));
+    }
 }

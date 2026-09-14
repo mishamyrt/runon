@@ -8,6 +8,7 @@ use objc2_app_kit::{
 use objc2_foundation::NSPoint;
 use std::{fs::File, sync::Arc, time::Duration};
 
+#[derive(Clone, Copy)]
 pub enum SourceKind {
     Data,
     Timer,
@@ -63,7 +64,7 @@ impl Source {
 
     pub fn arm(&self, delay: Option<Duration>) {
         let start = delay.map_or(DispatchTime::FOREVER, |d| {
-            DispatchTime::NOW.time(d.as_nanos().min(i64::MAX as u128) as i64)
+            DispatchTime::NOW.time(i64::try_from(d.as_nanos()).unwrap_or(i64::MAX))
         });
         self.0.set_timer(start, u64::MAX, 1_000_000);
     }
@@ -83,6 +84,7 @@ pub struct Signals {
 }
 
 impl Signals {
+    #[allow(clippy::needless_pass_by_value)] // The subscriptions retain shared ownership of the callback.
     pub fn new(
         queue: &DispatchQueue,
         callback: Arc<dyn Fn() + Send + Sync>,
@@ -97,14 +99,14 @@ impl Signals {
             let mut old = action;
             action.sa_sigaction = signal_handler as *const () as usize;
             action.sa_flags = libc::SA_RESTART;
-            if unsafe { libc::sigaction(sig, &action, &mut old) } != 0 {
+            if unsafe { libc::sigaction(sig, &raw const action, &raw mut old) } != 0 {
                 return Err(std::io::Error::last_os_error());
             }
             result.previous.push((sig, old));
             let cb = callback.clone();
             result.sources.push(Source::new(
                 SourceKind::Signal,
-                sig as usize,
+                usize::try_from(sig).unwrap(),
                 queue,
                 move || cb(),
             ));
@@ -148,8 +150,8 @@ pub fn stop_main() {
     });
 }
 
-/// AppKit must dispatch WindowServer events to update NSScreen and deliver
-/// NSApplicationDidChangeScreenParametersNotification. CFRunLoop alone cannot.
+/// `AppKit` must dispatch `WindowServer` events to update `NSScreen` and deliver
+/// `NSApplicationDidChangeScreenParametersNotification`. `CFRunLoop` alone cannot.
 pub struct RunLoop {
     app: Retained<NSApplication>,
 }

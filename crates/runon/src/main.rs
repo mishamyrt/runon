@@ -1,13 +1,17 @@
 mod cli;
 mod logging;
 
-fn main() {
+#[allow(clippy::print_stderr)] // Startup failures may precede logger initialization.
+fn main() -> std::process::ExitCode {
     if let Err(error) = cli::run() {
         if log::max_level() == log::LevelFilter::Off {
             eprintln!("runon: {error}");
         } else {
             log::error!("{error}");
         }
-        std::process::exit(1);
+        log::logger().flush();
+        return std::process::ExitCode::FAILURE;
     }
+    log::logger().flush();
+    std::process::ExitCode::SUCCESS
 }
