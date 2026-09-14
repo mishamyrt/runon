@@ -8,6 +8,7 @@ repository.workspace = true
 description = "Action execution and process supervision for RunOn"
 
 [dependencies]
+runon-config.workspace = true
 runon-core.workspace = true
 runon-macos.workspace = true
 libc.workspace = true

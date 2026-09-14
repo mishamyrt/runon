@@ -1,11 +1,14 @@
-use crate::process::Process;
+use crate::{matching::Matcher, process::Process};
 use dispatch2::{DispatchQueue, DispatchRetained};
+use runon_config::Config;
 use runon_core::{
-    config::{self, Config},
     event::Event,
     scheduler::{Scheduler, Start},
 };
-use runon_macos::native::{Source, SourceKind};
+use runon_macos::{
+    native::{Source, SourceKind},
+    paths,
+};
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex, Weak},
@@ -41,7 +44,7 @@ struct Inbox {
 
 #[derive(Clone)]
 pub struct Runtime {
-    config: Arc<Config>,
+    matcher: Arc<Matcher>,
     inbox: Arc<Mutex<Inbox>>,
     wake: Arc<Source>,
     state: Arc<Mutex<State>>,
@@ -81,7 +84,7 @@ impl Runtime {
         config: Config,
         report: impl Fn(Report) + Send + Sync + 'static,
     ) -> Result<Self, String> {
-        let home = config::home()?;
+        let home = paths::home()?;
         let config = Arc::new(config);
         let clock = Instant::now();
         let inbox = Arc::new(Mutex::new(Inbox {
@@ -93,7 +96,10 @@ impl Runtime {
             Mutex::new(State {
                 active: (0..config.groups.len()).map(|_| None).collect(),
                 config: config.clone(),
-                scheduler: Scheduler::new(config.clone()),
+                scheduler: Scheduler::new(
+                    config.max_parallel,
+                    config.groups.iter().map(|group| group.debounce).collect(),
+                ),
                 inbox: inbox.clone(),
                 queue: DispatchQueue::new("co.myrt.runon.scheduler", None),
                 weak: weak.clone(),
@@ -121,7 +127,7 @@ impl Runtime {
         s.timer.as_ref().unwrap().arm(None);
         drop(s);
         Ok(Self {
-            config,
+            matcher: Arc::new(Matcher::new(config)),
             inbox,
             wake,
             state,
@@ -131,7 +137,7 @@ impl Runtime {
 
     pub fn submit(&self, event: Event) {
         let at = self.clock.elapsed();
-        let batches = self.config.batches(&event);
+        let batches = self.matcher.batches(&event);
         if batches.is_empty() {
             return;
         }

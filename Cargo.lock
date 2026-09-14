@@ -318,9 +318,18 @@ dependencies = [
  "log",
  "objc2",
  "oslog",
+ "runon-config",
  "runon-core",
  "runon-macos",
  "runon-runtime",
+]
+
+[[package]]
+name = "runon-config"
+version = "2.0.0"
+dependencies = [
+ "kdl",
+ "runon-core",
 ]
 
 [[package]]
@@ -345,6 +354,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-foundation",
  "objc2-io-kit",
+ "runon-config",
  "runon-core",
 ]
 
@@ -355,6 +365,7 @@ dependencies = [
  "dispatch2",
  "libc",
  "log",
+ "runon-config",
  "runon-core",
  "runon-macos",
 ]

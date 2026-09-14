@@ -8,6 +8,7 @@ repository.workspace = true
 description = "Run commands on macOS system events"
 
 [dependencies]
+runon-config.workspace = true
 runon-core.workspace = true
 runon-macos.workspace = true
 runon-runtime.workspace = true

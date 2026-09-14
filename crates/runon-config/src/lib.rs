@@ -1,28 +1,20 @@
-use crate::event::{Event, Kind, Value};
+//! Configuration structures, KDL loading, parsing and validation.
+//! File paths are supplied by the caller; no environment or path discovery.
+#![forbid(unsafe_code)]
+
 use kdl::{KdlDocument, KdlEntry, KdlNode};
+use runon_core::event::{Kind, Value};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt, fs,
-    path::{Path, PathBuf},
+    path::Path,
     time::Duration,
 };
-
-pub const COMMAND_PATH: &str = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
 
 #[derive(Clone, Debug)]
 pub struct Selector {
     pub kind: Kind,
     pub fields: BTreeMap<String, Value>,
-}
-
-impl Selector {
-    pub fn matches(&self, event: &Event) -> bool {
-        self.kind == event.kind
-            && self
-                .fields
-                .iter()
-                .all(|(k, v)| event.fields.get(k) == Some(v))
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -44,7 +36,6 @@ pub struct Config {
     pub max_parallel: usize,
     pub actions: Vec<Action>,
     pub groups: Vec<Group>,
-    index: BTreeMap<Kind, Vec<usize>>,
 }
 
 #[derive(Debug)]
@@ -212,7 +203,6 @@ impl Config {
             max_parallel: 4,
             actions: Vec::new(),
             groups: Vec::new(),
-            index: BTreeMap::new(),
         };
         let mut named_groups = BTreeMap::new();
         let mut parallel_seen = false;
@@ -325,18 +315,6 @@ impl Config {
                     r.node_error(node, "action requires at least one on and one exec/shell")
                 );
             }
-            for kind in action
-                .selectors
-                .iter()
-                .map(|s| s.kind)
-                .collect::<BTreeSet<_>>()
-            {
-                result
-                    .index
-                    .entry(kind)
-                    .or_default()
-                    .push(result.actions.len());
-            }
             result.actions.push(action);
         }
         Ok(result)
@@ -348,43 +326,11 @@ impl Config {
     }
 
     pub fn kinds(&self) -> BTreeSet<Kind> {
-        self.index.keys().copied().collect()
+        self.actions
+            .iter()
+            .flat_map(|action| action.selectors.iter().map(|selector| selector.kind))
+            .collect()
     }
-
-    pub fn batches(&self, event: &Event) -> BTreeMap<usize, Vec<usize>> {
-        let mut batches: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
-        if let Some(actions) = self.index.get(&event.kind) {
-            for &id in actions {
-                let action = &self.actions[id];
-                if action.selectors.iter().any(|s| s.matches(event)) {
-                    batches.entry(action.group).or_default().push(id);
-                }
-            }
-        }
-        batches
-    }
-}
-
-pub fn home() -> Result<PathBuf, String> {
-    std::env::var_os("HOME")
-        .filter(|s| !s.is_empty())
-        .map(PathBuf::from)
-        .filter(|p| p.is_absolute())
-        .ok_or_else(|| "HOME must be an absolute path".into())
-}
-
-pub fn default_path() -> Result<PathBuf, String> {
-    let base = match std::env::var_os("XDG_CONFIG_HOME").filter(|s| !s.is_empty()) {
-        Some(p) => {
-            let path = PathBuf::from(p);
-            if !path.is_absolute() {
-                return Err("XDG_CONFIG_HOME must be an absolute path".into());
-            }
-            path
-        }
-        None => home()?.join(".config"),
-    };
-    Ok(base.join("runon/config.kdl"))
 }
 
 #[cfg(test)]
@@ -392,38 +338,34 @@ mod tests {
     use super::*;
 
     #[test]
-    fn unicode_raw_strings_and_matching() {
+    fn unicode_raw_strings_and_defaults() {
         let c = Config::parse("action привет {\n on app.activated bundle-id=editor name=Редактор\n on app.activated\n shell #\"\"\"\n echo \"$HOME\"\n \"\"\"#\n}\n").unwrap();
-        assert_eq!(
-            c.batches(&Event::new(Kind::AppActivated))
-                .values()
-                .next()
-                .unwrap(),
-            &[0]
-        );
+        assert_eq!(c.max_parallel, 4);
+        assert_eq!(c.actions[0].name, "привет");
         assert_eq!(c.actions[0].timeout, Duration::from_secs(30));
         assert_eq!(c.actions[0].steps[0], ["/bin/sh", "-c", "echo \"$HOME\""]);
-        let selector = &c.actions[0].selectors[0];
-        assert!(!selector.matches(&Event::new(Kind::AppActivated).text("bundle-id", "editor")));
-        assert!(
-            selector.matches(
-                &Event::new(Kind::AppActivated)
-                    .text("bundle-id", "editor")
-                    .text("name", "Редактор")
-            )
+        assert_eq!(c.groups.len(), 1);
+        assert_eq!(c.groups[0].debounce, Duration::ZERO);
+        assert_eq!(c.actions[0].group, 0);
+        assert_eq!(c.kinds(), BTreeSet::from([Kind::AppActivated]));
+        assert_eq!(
+            c.actions[0].selectors[0].fields,
+            BTreeMap::from([
+                ("bundle-id".into(), Value::Text("editor".into())),
+                ("name".into(), Value::Text("Редактор".into())),
+            ])
         );
+        assert!(c.actions[0].selectors[1].fields.is_empty());
     }
 
     #[test]
-    fn forward_groups_all_actions_and_numeric_filters() {
+    fn forward_groups_and_numeric_filters() {
         let c = Config::parse("action a group=g { on screen.connected id=12; exec p; }\naction b group=g { on screen.connected; exec p; }\ngroup g { debounce \"1m\"; }\n").unwrap();
-        let mut e = Event::new(Kind::ScreenConnected);
-        e.fields.insert("id".into(), Value::Id(12));
-        assert_eq!(c.batches(&e)[&0], vec![0, 1]);
+        assert_eq!(c.groups.len(), 1);
         assert_eq!(c.groups[0].debounce, Duration::from_secs(60));
-        let round_trip =
-            Config::parse(&format!("action x {{ {}; exec p; }}", e.selector())).unwrap();
-        assert_eq!(round_trip.batches(&e).len(), 1);
+        assert_eq!(c.actions[0].group, 0);
+        assert_eq!(c.actions[1].group, 0);
+        assert_eq!(c.actions[0].selectors[0].fields["id"], Value::Id(12));
     }
 
     #[test]

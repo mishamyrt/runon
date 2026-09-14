@@ -8,6 +8,7 @@ repository.workspace = true
 description = "Native macOS event sources and system integration for RunOn"
 
 [dependencies]
+runon-config.workspace = true
 runon-core.workspace = true
 libc.workspace = true
 log.workspace = true

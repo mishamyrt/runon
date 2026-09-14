@@ -1,11 +1,12 @@
 [package]
-name = "runon-core"
+name = "runon-config"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Typed events and scheduling rules for RunOn"
+description = "KDL configuration loading, parsing and validation for RunOn"
 
 [dependencies]
+runon-core.workspace = true
 kdl.workspace = true

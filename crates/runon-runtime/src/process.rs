@@ -1,8 +1,11 @@
 //! Event-driven child supervision. A leader is reaped only after group cleanup,
 //! so delayed signals can never target a recycled process-group identifier.
 use dispatch2::DispatchQueue;
-use runon_core::config::{Action, COMMAND_PATH};
-use runon_macos::native::{Source, SourceKind};
+use runon_config::Action;
+use runon_macos::{
+    native::{Source, SourceKind},
+    paths::COMMAND_PATH,
+};
 use std::{
     collections::VecDeque,
     fs::File,

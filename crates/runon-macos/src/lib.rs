@@ -3,6 +3,7 @@
 compile_error!("RunOn requires macOS 26 or later on Apple Silicon");
 
 pub mod native;
+pub mod paths;
 mod service;
 mod sources;
 

@@ -1,4 +1,7 @@
-use crate::native::{Source, SourceKind};
+use crate::{
+    native::{Source, SourceKind},
+    paths::{self, COMMAND_PATH},
+};
 use dispatch2::DispatchQueue;
 use objc2::{
     rc::Retained,
@@ -8,7 +11,7 @@ use objc2_foundation::{
     NSArray, NSData, NSDictionary, NSMutableDictionary, NSNumber, NSPropertyListFormat,
     NSPropertyListMutabilityOptions, NSPropertyListSerialization, NSString, ns_string,
 };
-use runon_core::config::{self, COMMAND_PATH, Config};
+use runon_config::Config;
 use std::{
     fs,
     io::Write,
@@ -43,7 +46,7 @@ impl LaunchAgent {
     pub fn current() -> Result<Self, String> {
         Ok(Self::new(
             crate::APP_ID.into(),
-            config::home()?,
+            paths::home()?,
             std::env::current_exe().map_err(|e| e.to_string())?,
         ))
     }
@@ -224,7 +227,7 @@ impl LaunchAgent {
             None => self
                 .saved_config()?
                 .map(Ok)
-                .unwrap_or_else(config::default_path)?,
+                .unwrap_or_else(paths::default_config_path)?,
         };
         let path = fs::canonicalize(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         Config::load(&path)?;

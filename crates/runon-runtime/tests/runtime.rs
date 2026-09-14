@@ -1,7 +1,5 @@
-use runon_core::{
-    config::Config,
-    event::{Event, Kind},
-};
+use runon_config::Config;
+use runon_core::event::{Event, Kind};
 use runon_runtime::{OUTPUT_LIMIT, Report, Runtime};
 use std::{
     fs,

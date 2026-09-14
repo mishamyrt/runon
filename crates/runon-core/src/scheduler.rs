@@ -1,5 +1,4 @@
-use crate::config::Config;
-use std::{collections::VecDeque, sync::Arc, time::Duration};
+use std::{collections::VecDeque, time::Duration};
 
 #[derive(Debug)]
 struct Pending {
@@ -11,6 +10,7 @@ struct Pending {
 
 #[derive(Default, Debug)]
 struct Slot {
+    debounce: Duration,
     pending: Option<Pending>,
     running: Option<Pending>,
     free_at: Duration,
@@ -24,17 +24,23 @@ pub struct Start {
 }
 
 pub struct Scheduler {
-    config: Arc<Config>,
+    max_parallel: usize,
     slots: Vec<Slot>,
     order: u64,
     stopped: bool,
 }
 
 impl Scheduler {
-    pub fn new(config: Arc<Config>) -> Self {
+    pub fn new(max_parallel: usize, debounces: Vec<Duration>) -> Self {
         Self {
-            slots: (0..config.groups.len()).map(|_| Slot::default()).collect(),
-            config,
+            slots: debounces
+                .into_iter()
+                .map(|debounce| Slot {
+                    debounce,
+                    ..Slot::default()
+                })
+                .collect(),
+            max_parallel,
             order: 0,
             stopped: false,
         }
@@ -47,7 +53,7 @@ impl Scheduler {
         self.order += 1;
         let slot = &mut self.slots[group];
         let order = slot.pending.as_ref().map_or(self.order, |p| p.order);
-        let debounce = self.config.groups[group].debounce;
+        let debounce = slot.debounce;
         // Replacing an already-ready packet without debounce retains its queue
         // position. With debounce, the new event makes it unready again.
         let ready_at = if debounce.is_zero() {
@@ -83,7 +89,7 @@ impl Scheduler {
         ready.sort_unstable();
         ready
             .into_iter()
-            .take(self.config.max_parallel.saturating_sub(running))
+            .take(self.max_parallel.saturating_sub(running))
             .map(|(_, _, group)| {
                 let slot = &mut self.slots[group];
                 let mut batch = slot.pending.take().unwrap();
@@ -118,7 +124,7 @@ impl Scheduler {
 
     pub fn deadline(&self, now: Duration) -> Option<Duration> {
         if self.stopped
-            || self.slots.iter().filter(|s| s.running.is_some()).count() >= self.config.max_parallel
+            || self.slots.iter().filter(|s| s.running.is_some()).count() >= self.max_parallel
         {
             return None;
         }
@@ -149,7 +155,7 @@ mod tests {
         Duration::from_millis(ms)
     }
     fn scheduler() -> Scheduler {
-        Scheduler::new(Arc::new(Config::parse("max-parallel 1\ngroup g { debounce \"10ms\"; }\naction a group=g { on system.wake; exec p; }\naction b group=g { on system.wake; exec p; }\naction c { on system.wake; exec p; }").unwrap()))
+        Scheduler::new(1, vec![time(10), Duration::ZERO])
     }
 
     #[test]
@@ -174,8 +180,7 @@ mod tests {
 
     #[test]
     fn fifo_uses_readiness_and_retains_zero_debounce_position() {
-        let c = Arc::new(Config::parse("max-parallel 1\ngroup slow { debounce \"100ms\"; }\naction slow group=slow { on system.wake; exec p; }\naction fast { on system.wake; exec p; }\naction blocker { on system.wake; exec p; }").unwrap());
-        let mut s = Scheduler::new(c);
+        let mut s = Scheduler::new(1, vec![time(100), Duration::ZERO, Duration::ZERO]);
         s.enqueue(2, vec![2], time(0));
         assert_eq!(s.poll(time(0))[0].group, 2);
         s.enqueue(0, vec![0], time(1));
@@ -192,13 +197,7 @@ mod tests {
 
     #[test]
     fn independent_groups_and_shutdown() {
-        let c = Arc::new(
-            Config::parse(
-                "action a { on system.wake; exec p; }\naction b { on system.wake; exec p; }",
-            )
-            .unwrap(),
-        );
-        let mut s = Scheduler::new(c);
+        let mut s = Scheduler::new(4, vec![Duration::ZERO; 2]);
         s.enqueue(0, vec![0], time(0));
         s.enqueue(1, vec![1], time(0));
         assert_eq!(s.poll(time(0)).len(), 2);

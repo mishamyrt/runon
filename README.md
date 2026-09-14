@@ -181,16 +181,17 @@ make build-release  # release binary, ARM64 archive, SHA256SUMS, release notes
 make measure        # five-minute idle measurement + latency/event-flood benchmark
 ```
 
-The Cargo workspace has four crates. Shared dependency versions, package metadata and the release profile live in the root `Cargo.toml`; all crates share one `Cargo.lock` and `target/` directory.
+The Cargo workspace has five crates. Shared dependency versions, package metadata and the release profile live in the root `Cargo.toml`; all crates share one `Cargo.lock` and `target/` directory.
 
 | Crate | Responsibility | Internal dependencies |
 | --- | --- | --- |
-| [`runon-core`](crates/runon-core) | KDL configuration, typed events, matching and clock-controlled scheduling rules; no platform APIs or unsafe code | None |
-| [`runon-macos`](crates/runon-macos) | Native event subscriptions, Dispatch/RunLoop/signal ownership and LaunchAgent integration | `runon-core` |
-| [`runon-runtime`](crates/runon-runtime) | Action execution, process groups, output capture, deadlines and the serial scheduler queue | `runon-core`, `runon-macos` |
-| [`runon`](crates/runon) | Binary entry point, CLI commands, logging and wiring the components together | All three libraries |
+| [`runon-core`](crates/runon-core) | Typed events and clock-controlled scheduling rules; no platform APIs or unsafe code | None |
+| [`runon-config`](crates/runon-config) | Configuration structures, KDL loading, parsing and validation | `runon-core` |
+| [`runon-macos`](crates/runon-macos) | Native event subscriptions, Dispatch/RunLoop/signal ownership, system paths and LaunchAgent integration | `runon-config`, `runon-core` |
+| [`runon-runtime`](crates/runon-runtime) | Event matching, action execution, process groups, output capture, deadlines and the serial scheduler queue | `runon-config`, `runon-core`, `runon-macos` |
+| [`runon`](crates/runon) | Binary entry point, CLI commands, logging and wiring the components together | All four libraries |
 
-The libraries never depend on the CLI. Native sources emit typed events through a callback and do not depend on the runtime. Process supervision stays private to `runon-runtime`; its public entry points are `Runtime` and `Report`. The core can be built and tested independently with `cargo test --locked -p runon-core`.
+The libraries never depend on the CLI. Native sources emit typed events through a callback and do not depend on the runtime. Process supervision stays private to `runon-runtime`; its public entry points are `Runtime` and `Report`. The scheduler receives the parallelism limit and group debounce durations without depending on the configuration parser. `runon-config` reads an explicitly supplied path; `runon-macos::paths` owns home/config path discovery and the command search path. The core and configuration crates can be built and tested independently of macOS with `cargo test --locked -p runon-core -p runon-config`.
 
 The main thread runs CFRunLoop. A serial DispatchQueue owns scheduling and process lifecycle; native data, process, pipe, timer and signal sources drive work. There is no async runtime, periodic process check or idle timer. Only configured event sources are subscribed, plus wake notifications required for refreshing device/power snapshots.
 

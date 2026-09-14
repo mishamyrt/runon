@@ -1,11 +1,10 @@
 use crate::logging;
-use runon_core::{
-    config::{self, Config},
-    event::Kind,
-};
+use runon_config::Config;
+use runon_core::event::Kind;
 use runon_macos::{
     LaunchAgent, Sources,
     native::{RunLoop, Signals},
+    paths,
 };
 use runon_runtime::Runtime;
 use std::{path::PathBuf, sync::Arc};
@@ -46,7 +45,7 @@ pub fn run() -> Result<(), String> {
     logging::init(service)?;
     match command {
         "run" => {
-            let path = path.map(Ok).unwrap_or_else(config::default_path)?;
+            let path = path.map(Ok).unwrap_or_else(paths::default_config_path)?;
             let config = Config::load(&path)?;
             let kinds = config.kinds();
             let runloop = RunLoop::new()?;
@@ -85,7 +84,7 @@ pub fn run() -> Result<(), String> {
             Ok(())
         }
         "check" => {
-            let path = path.map(Ok).unwrap_or_else(config::default_path)?;
+            let path = path.map(Ok).unwrap_or_else(paths::default_config_path)?;
             let config = Config::load(&path)?;
             println!(
                 "{}: valid ({} actions, {} groups)",

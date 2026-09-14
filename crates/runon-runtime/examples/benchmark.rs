@@ -1,8 +1,6 @@
 //! Run with `cargo run -p runon-runtime --release --example benchmark` on an otherwise idle Mac.
-use runon_core::{
-    config::Config,
-    event::{Event, Kind},
-};
+use runon_config::Config;
+use runon_core::event::{Event, Kind};
 use runon_runtime::{Report, Runtime};
 use std::{
     sync::mpsc,
