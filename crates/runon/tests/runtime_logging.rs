@@ -34,9 +34,8 @@ fn child(dir: &Path) {
     .unwrap();
     let (tx, rx) = mpsc::channel();
     let runtime = Runtime::new(config, move |report| {
-        let summary = report_summary(&report);
-        logging::report(report);
-        tx.send(summary).unwrap();
+        logging::report(&report);
+        tx.send(report).unwrap();
     })
     .unwrap();
     let stop = runtime.clone();
@@ -83,28 +82,6 @@ fn child(dir: &Path) {
         Report::Stopped
     ));
     log::logger().flush();
-}
-
-fn report_summary(report: &Report) -> Report {
-    match report {
-        Report::Started { name, latency } => Report::Started {
-            name: name.clone(),
-            latency: *latency,
-        },
-        Report::Finished {
-            name,
-            success,
-            reason,
-            ..
-        } => Report::Finished {
-            name: name.clone(),
-            success: *success,
-            reason: reason.clone(),
-            stdout: String::new(),
-            stderr: String::new(),
-        },
-        Report::Stopped => Report::Stopped,
-    }
 }
 
 fn main() {

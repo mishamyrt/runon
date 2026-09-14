@@ -50,7 +50,7 @@ pub fn run() -> Result<(), String> {
             let config = Config::load(&path)?;
             let kinds = config.kinds();
             let runloop = RunLoop::new()?;
-            let runtime = Runtime::new(config, logging::report)?;
+            let runtime = Runtime::new(config, |report| logging::report(&report))?;
             let stop = runtime.clone();
             let _signals = Signals::new(&runtime.queue(), Arc::new(move || stop.shutdown()))
                 .map_err(|e| e.to_string())?;

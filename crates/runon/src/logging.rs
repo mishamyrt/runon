@@ -116,7 +116,7 @@ pub fn init(service: bool) -> Result<(), String> {
     Ok(())
 }
 
-pub fn report(report: runon_runtime::Report) {
+pub fn report(report: &runon_runtime::Report) {
     use runon_runtime::Report;
     match report {
         Report::Started { name, .. } => log::info!("action '{name}' started"),
@@ -127,7 +127,7 @@ pub fn report(report: runon_runtime::Report) {
             stdout,
             stderr,
         } => {
-            if success {
+            if *success {
                 log::info!("action '{name}' completed");
             } else {
                 log::error!("action '{name}' failed: {reason}");

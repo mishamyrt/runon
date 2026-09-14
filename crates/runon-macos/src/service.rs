@@ -183,17 +183,10 @@ impl LaunchAgent {
         let binary = self.binary.to_str().ok_or("binary path must be UTF-8")?;
         let path = path.to_str().ok_or("config path must be UTF-8")?;
         let home = self.home.to_str().ok_or("home path must be UTF-8")?;
-        let agent = lunchd::LaunchAgent {
-            label: self.label.clone(),
-            program_arguments: [binary, "run", "--service", "-c", path]
-                .map(String::from)
-                .into(),
-            run_at_load: true,
-            working_directory: Some(self.home.clone()),
-            ..Default::default()
-        };
-        let dict = read_plist(agent.as_string().into_bytes())?;
-        // lunchd 0.2.1 cannot render these policies or EnvironmentVariables.
+        let arguments = NSArray::from_retained_slice(
+            &[binary, "run", "--service", "-c", path].map(NSString::from_str),
+        );
+        let dict = NSMutableDictionary::<NSString, AnyObject>::new();
         let keepalive = NSDictionary::from_slices(
             &[ns_string!("SuccessfulExit")],
             &[&*NSNumber::new_bool(false)],
@@ -206,13 +199,20 @@ impl LaunchAgent {
             ],
         );
         for (key, value) in [
-            (ns_string!("KeepAlive"), &*keepalive as &AnyObject),
+            (
+                ns_string!("Label"),
+                &*NSString::from_str(&self.label) as &AnyObject,
+            ),
+            (ns_string!("ProgramArguments"), &*arguments),
+            (ns_string!("RunAtLoad"), &*NSNumber::new_bool(true)),
+            (ns_string!("WorkingDirectory"), &*NSString::from_str(home)),
+            (ns_string!("KeepAlive"), &*keepalive),
             (ns_string!("EnvironmentVariables"), &*env),
             (ns_string!("ThrottleInterval"), &*NSNumber::new_u64(10)),
             (ns_string!("ExitTimeOut"), &*NSNumber::new_u64(5)),
             (ns_string!("LimitLoadToSessionType"), ns_string!("Aqua")),
         ] {
-            // SAFETY: this untyped mutable dictionary accepts NSString keys and plist values.
+            // SAFETY: all keys are NSString and all values are property-list types.
             unsafe {
                 dict.setObject_forKey(value, ProtocolObject::from_ref(key));
             }
