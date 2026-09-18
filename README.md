@@ -48,6 +48,7 @@ action desk-off group=desk {
 
 action after-wake {
     on system.wake
+    debounce "500ms"
     exec "setup_audio"
 }
 
@@ -87,7 +88,7 @@ KDL 2 supports bare string values such as `desk`, quoted Unicode strings, commen
 | --- | --- | --- |
 | `max-parallel 4` | Maximum number of executing groups; positive integer | `4` |
 | `group NAME { … }` | Named group; names must be unique and nonempty | — |
-| `debounce "500ms"` | Group quiet period after the latest matching event | `0ms` |
+| `debounce "500ms"` | Quiet period after the latest matching event; inside a group or an action without `group` | `0ms` |
 | `action NAME group=NAME { … }` | Named action, optionally assigned to a declared group | Private group |
 | `on EVENT filter=value` | Event selector; at least one per action | — |
 | `timeout "30s"` | Deadline for the entire action, including every step | `30s` |
@@ -95,6 +96,8 @@ KDL 2 supports bare string values such as `desk`, quoted Unicode strings, commen
 | `shell "script"` | Execute one string through `/bin/sh -c` | — |
 
 An action needs a unique, nonempty name, at least one selector and at least one step. Group declarations may follow actions that reference them. Durations are unsigned integer strings ending in `ms`, `s` or `m`; timeout must be positive, debounce can be zero. Out-of-range durations are rejected.
+
+Set `debounce` directly inside an action to debounce it independently. Actions with `group=NAME` use the group's debounce; combining `group` with an action-level `debounce` is an error.
 
 Multiple `on` nodes are **OR**. Properties on one selector are **AND**. Values compare exactly, including case. A missing event field never satisfies a filter. A selector without properties matches any event of that kind. One event selects each matching action once, even when several of its selectors match.
 

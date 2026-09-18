@@ -17,6 +17,7 @@ action desk-off group=desk {
 
 action after-wake {
     on system.wake
+    debounce "500ms"
     exec "setup_audio"
 }
 

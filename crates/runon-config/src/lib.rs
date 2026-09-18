@@ -288,9 +288,23 @@ impl Config {
                 group,
             };
             let mut timeout_seen = false;
+            let mut debounce_seen = false;
             for item in r.children(node)?.nodes() {
                 match item.name().value() {
                     "on" => action.selectors.push(r.selector(item)?),
+                    "debounce" => {
+                        if node.entry("group").is_some() {
+                            return Err(r.node_error(
+                                item,
+                                "action debounce cannot be combined with group; set debounce on the group",
+                            ));
+                        }
+                        if debounce_seen {
+                            return Err(r.node_error(item, "duplicate debounce"));
+                        }
+                        debounce_seen = true;
+                        result.groups[group].debounce = r.duration(item, true)?;
+                    }
                     "timeout" => {
                         if timeout_seen {
                             return Err(r.node_error(item, "duplicate timeout"));
@@ -383,6 +397,29 @@ mod tests {
     }
 
     #[test]
+    fn action_debounce_uses_independent_groups() {
+        let c = Config::parse(
+            r#"
+            action a { on system.wake; debounce "500ms"; exec p; }
+            action b { on system.wake; debounce "2s"; exec p; }
+            action c { on system.wake; exec p; }
+            action d group=g { on system.wake; exec p; }
+            group g { debounce "1m"; }
+            "#,
+        )
+        .unwrap();
+        assert_eq!(c.groups.len(), 4);
+        for (action, (group, millis)) in
+            c.actions
+                .iter()
+                .zip([(1, 500), (2, 2_000), (3, 0), (0, 60_000)])
+        {
+            assert_eq!(action.group, group);
+            assert_eq!(c.groups[group].debounce, Duration::from_millis(millis));
+        }
+    }
+
+    #[test]
     fn rejects_invalid_schema_with_locations() {
         let bad = [
             "unknown 1",
@@ -408,6 +445,13 @@ mod tests {
             "action \"\" { on system.wake; exec p; }",
             "group g { debounce \"1s\"; debounce \"2s\"; }",
             "group g { debounce \"-1ms\"; }",
+            "action a { on system.wake; exec p; debounce \"1s\"; debounce \"2s\"; }",
+            "action a { on system.wake; exec p; debounce \"-1ms\"; }",
+            "action a { on system.wake; exec p; debounce \"1.5s\"; }",
+            "action a { on system.wake; exec p; debounce \"18446744073709551615m\"; }",
+            "action a { on system.wake; exec p; debounce 500; }",
+            "action a { on system.wake; exec p; debounce \"1s\" {}; }",
+            "action a group=g { on system.wake; exec p; debounce \"1s\"; }\ngroup g {}",
             "action a { on system.wake; shell r\"v1 raw\"; }",
             "action a { on screen.connected id=#true; exec p; }",
             "action a { on system.wake; shell #null; }",
@@ -420,6 +464,7 @@ mod tests {
         let error = Config::parse("action привет { on system.wake wrong=1; exec p; }").unwrap_err();
         assert_eq!((error.line, error.column), (1, 32));
         assert!(Config::parse("group g { debounce \"0ms\"; }").is_ok());
+        assert!(Config::parse("action a { on system.wake; exec p; debounce \"0ms\"; }").is_ok());
         assert!(Config::parse("").is_ok());
     }
 }
