@@ -1,10 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-if [[ $(uname -m) != arm64 || $(uname -s) != Darwin ]]; then
-    echo 'Build on an Apple Silicon Mac.' >&2
-    exit 1
-fi
+case "$(uname -s)/$(uname -m)" in
+    Darwin/arm64) arch=arm64 ;;
+    Darwin/x86_64) arch=x86_64 ;;
+    *) echo 'Build on an Apple Silicon or Intel Mac.' >&2; exit 1 ;;
+esac
+archive="runon-macos-$arch.tar.gz"
 cargo build --release --locked -p runon
 version=$(target/release/runon --version)
 mkdir -p dist
@@ -15,10 +17,10 @@ cp LICENSE README.md "$package_tmp/"
 cp -R docs "$package_tmp/docs"
 mkdir "$package_tmp/examples"
 cp examples/*.kdl "$package_tmp/examples/"
-COPYFILE_DISABLE=1 tar -czf dist/runon-macos-arm64.tar.gz -C "$package_tmp" runon LICENSE README.md examples docs
+COPYFILE_DISABLE=1 tar -czf "dist/$archive" -C "$package_tmp" runon LICENSE README.md examples docs
 (
     cd dist
-    shasum -a 256 runon-macos-arm64.tar.gz > SHA256SUMS
+    shasum -a 256 "$archive" > SHA256SUMS
     shasum -a 256 -c SHA256SUMS
 )
 bash build/generate-release-notes.sh "v$version" > dist/notes.md

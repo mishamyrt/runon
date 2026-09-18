@@ -1,6 +1,6 @@
 # RunOn 2 validation
 
-Implementation validation was performed on an Apple M3 Pro, macOS 27.0, ARM64, with Rust 1.98.0. The binary has an LC_BUILD_VERSION minimum of macOS 26.0. Results on macOS 27 do **not** establish event delivery on macOS 26; that hardware/OS acceptance remains open.
+Implementation validation was performed on an Apple M3 Pro, macOS 27.0, ARM64, with Rust 1.98.0. The deployment target is macOS 15.0 for ARM64 and Intel. Results on macOS 27 ARM64 do **not** establish event delivery on macOS 15 or Intel; that hardware/OS acceptance remains open.
 
 ## Automated checks
 
@@ -17,7 +17,7 @@ cargo run --locked -p runon-macos --example native_smoke
 | Scheduler | Controlled monotonic clock, ordered batches, latest pending replacement, debounce reset, independent groups, concurrency limit, readiness FIFO, shutdown, bounded pending storage under thousands of replacements |
 | Runtime boundaries | Replacements before the first dispatch preserve FIFO and latest batch contents, with and without debounce; report callbacks can access the runtime queue; unread stderr and a flooded log queue preserve process timeouts and SIGTERM shutdown |
 | Processes | 100 rapid exits, spawn failure, literal argv, sequential failure, following batch actions, 2 MB per output stream with exact 64 KiB tails, timeout, SIGTERM/SIGKILL escalation, killed descendant, slot reuse, graceful daemon shutdown |
-| CLI/install | Config paths/defaults, invalid arguments, empty config staying asleep, SIGTERM shutdown; installer paths with spaces and checksum rejection preserving the previous binary |
+| CLI/install | Config paths/defaults, invalid arguments, empty config staying asleep, SIGTERM shutdown; installer paths with spaces, archive selection for both architectures from a combined checksum manifest, rejection of mismatched/missing checksums preserving the previous binary, and rejection of unsupported systems before downloading |
 | LaunchAgent | Isolated start/status/restart/stop, idempotent start, retained config path, invalid restart preserving PID, recovery after SIGKILL, restart waiting for a slow SIGTERM handler, retained settings after stop |
 | Native sources | AppKit event queue processing; all subscriptions and initial snapshots on a real GUI session; no startup connection events, repeated screen notifications and wake refresh without false display changes; real NSWorkspace launch/termination of a temporary app |
 
@@ -25,11 +25,17 @@ The native test opens its own short-lived app hidden and without activation. It 
 
 The AppKit queue regression check posts a process-local `NSEvent` and verifies that the main loop consumes it. It failed with the previous bare `CFRunLoop` and passes with `NSApplication.run`, which processes the WindowServer events needed for display-change notifications. Synthetic notification delivery alone did not detect this bug; physical monitor acceptance below is still required. Shutdown dispatches `stop` to the main queue and posts a wake event so SIGINT/SIGTERM can exit an idle AppKit loop. See Apple's [event loop](https://developer.apple.com/documentation/appkit/nsapplication/run%28%29) and [stop behavior](https://developer.apple.com/documentation/appkit/nsapplication/stop%28_%3A%29) documentation.
 
-The scripts and workflow are prepared for macOS 26 ARM64. GitHub Actions has not been run from this local rewrite. Publishing requires an explicit version tag; no tag or release was created.
+The scripts and workflows cover macOS 15 ARM64/Intel and macOS 26 ARM64. Release archives are built separately on macOS 15 for each architecture, then combined with a shared checksum manifest. GitHub Actions has not been run from this local checkout. Publishing requires an explicit version tag; no tag or release was created.
+
+### Compatibility checks — 2026-09-18
+
+`make check` passed natively on ARM64 and for `x86_64-apple-darwin` through Rosetta on macOS 27.0. The CLI test waits for the daemon's readiness log before checking idle behavior and SIGTERM, rather than assuming startup finishes within 150 ms. The explicitly ignored LaunchAgent lifecycle test was not rerun.
+
+Both release binaries have `LC_BUILD_VERSION minos 15.0`: ARM64 is 723,488 bytes and x86_64 is 779,560 bytes. Both validate the bundled configurations. ARM64 packaging and the release workflow's archive/checksum combination passed locally with real binaries for both architectures. The Intel `native_smoke` example also passed through Rosetta, including AppKit event processing, subscriptions, snapshots and real launch/termination notifications from its temporary app. Physical Intel hardware and macOS 15 acceptance remain outstanding.
 
 ## Performance reproduction
 
-Use an otherwise quiet, logged-in Apple Silicon Mac. Build first, finish other tests, then measure:
+Use an otherwise quiet, logged-in Mac. Build first, finish other tests, then measure:
 
 ```sh
 cargo build --release --locked -p runon
@@ -72,14 +78,14 @@ The clocks used by Rust's Apple `Instant` and dispatch deadlines measure awake u
 
 ## Hardware acceptance still required
 
-Run `target/release/runon events` in a GUI terminal on macOS 26 and on every additional OS version being supported. Keep the output as the validation record. The following transitions have **not** been physically exercised during this rewrite:
+Run `target/release/runon events` in a GUI terminal on macOS 15 for both Apple Silicon and Intel, and on newer supported OS versions. Keep the output as the validation record. The following transitions have **not** been physically exercised during this rewrite:
 
 | Transition | Expected observation |
 | --- | --- |
 | Disconnect/reconnect an external monitor | One disconnected selector with saved name/ID, then one connected selector; changing resolution alone creates no connection event |
 | Disconnect/reconnect an audio device | Saved UID/name on removal, current metadata on addition; two devices with the same name remain distinct |
 | Activate/deactivate a GUI application | Its exact bundle ID/name, each corresponding transition; missing OS fields remain absent |
-| Lock and unlock | One `screen.locked`, then one `screen.unlocked`; verify real delivery on macOS 26 explicitly |
+| Lock and unlock | One `screen.locked`, then one `screen.unlocked`; verify real delivery on each tested OS/architecture explicitly |
 | Sleep, change attached devices/power, then wake | `system.wake`, followed by any missed snapshot differences, with no duplicate device changes from later notifications |
 | Switch AC/battery/UPS | One `power.changed` per source transition; battery percentage changes alone do not wake the daemon |
 
@@ -87,4 +93,4 @@ Use disposable `/usr/bin/true` actions when checking a daemon against these sele
 
 NSWorkspace launch/termination notifications intentionally follow Apple's delivery rules: background applications and `LSUIElement` apps are excluded. The native smoke test uses a regular app without activating it. [Apple documentation](https://developer.apple.com/documentation/appkit/nsworkspace/didlaunchapplicationnotification).
 
-Screen lock uses undocumented distributed notification names. If the real macOS 26 delivery check fails, it is a release blocker for that event source; a successful subscription or a synthetic notification is not sufficient evidence.
+Screen lock uses undocumented distributed notification names. If real delivery fails on a supported OS/architecture, it is a release blocker for that event source; a successful subscription or a synthetic notification is not sufficient evidence.

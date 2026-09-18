@@ -4,7 +4,7 @@
 
 [![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
 
-RunOn runs commands when your Mac's displays, audio devices, applications, lock state or power source change. Version 2 is one small Rust binary for **macOS 26+ on Apple Silicon**, configured with **KDL 2**.
+RunOn runs commands when your Mac's displays, audio devices, applications, lock state or power source change.
 
 ## Install
 
@@ -14,7 +14,7 @@ From a published 2.x release:
 curl -fsSL https://raw.githubusercontent.com/mishamyrt/runon/main/scripts/install.sh | bash
 ```
 
-The installer checks the archive's SHA-256 and places `runon` in `~/.local/bin`. Add that directory to your interactive PATH. Installation does not start the service. For a particular release, download the installer and pass a tag such as `v2.0.0`.
+The installer selects the archive for your Mac's architecture, checks its SHA-256 and places `runon` in `~/.local/bin`. Add that directory to your interactive PATH. Installation does not start the service. For a particular release, download the installer and pass a tag such as `v2.0.0`.
 
 To build this checkout, install Rust with rustup and the Xcode Command Line Tools, then:
 
@@ -206,4 +206,4 @@ cargo run --locked -p runon-macos --example native_smoke
 
 Hardware event delivery needs a real logged-in Mac. [Validation and measurements](docs/validation.md) describe the reproducible checks, measured results and outstanding hardware checks.
 
-Release builds use size optimization, LTO, one codegen unit, symbol stripping and abort-on-panic. Cargo.lock and the Rust toolchain are pinned. CI runs checks and packages on macOS 26 ARM64. A pushed `v*` tag must match Cargo's version and publishes `runon-macos-arm64.tar.gz` and `SHA256SUMS`; manually running the workflow only builds artifacts. Local packaging does not publish a release.
+Release builds use size optimization, LTO, one codegen unit, symbol stripping and abort-on-panic, with a macOS 15.0 deployment target. Cargo.lock and the Rust toolchain are pinned. CI runs checks and packages on macOS 15 for both ARM64 and Intel, plus macOS 26 ARM64. Releases build natively on macOS 15 for each architecture. A pushed `v*` tag must match Cargo's version and publishes `runon-macos-arm64.tar.gz`, `runon-macos-x86_64.tar.gz` and a combined `SHA256SUMS`; manually running the workflow only builds artifacts. Local packaging builds the host architecture and does not publish a release.

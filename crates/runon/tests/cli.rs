@@ -1,7 +1,7 @@
 use std::{
     fs,
     process::{Command, Stdio},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 const BIN: &str = env!("CARGO_BIN_EXE_runon");
@@ -46,13 +46,30 @@ fn examples_errors_and_defaults() {
         );
     }
     fs::write(&config, "// empty config\n").unwrap();
+    let stderr = dir.join("stderr.log");
     let mut child = Command::new(BIN)
         .arg("run")
         .env("XDG_CONFIG_HOME", &dir)
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(fs::File::create(&stderr).unwrap())
         .spawn()
         .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !fs::read_to_string(&stderr)
+        .unwrap()
+        .contains("ready; config=")
+    {
+        assert!(
+            child.try_wait().unwrap().is_none(),
+            "daemon exited during startup"
+        );
+        if Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("daemon did not become ready");
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
     std::thread::sleep(Duration::from_millis(150));
     assert!(
         child.try_wait().unwrap().is_none(),
@@ -61,13 +78,13 @@ fn examples_errors_and_defaults() {
     unsafe {
         libc::kill(child.id().try_into().unwrap(), libc::SIGTERM);
     }
-    let deadline = std::time::Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now() + Duration::from_secs(5);
     loop {
         if let Some(status) = child.try_wait().unwrap() {
             assert!(status.success());
             break;
         }
-        if std::time::Instant::now() > deadline {
+        if Instant::now() > deadline {
             let _ = child.kill();
             let _ = child.wait();
             panic!("daemon did not stop");

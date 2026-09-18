@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning][].
 ### Breaking changes
 
 - Replace the Swift implementation and YAML configuration with a Rust daemon and KDL 2.
-- Require Apple Silicon and macOS 26 or newer.
+- Require macOS 15 or newer on Apple Silicon or Intel.
 - Install the binary in `~/.local/bin`; write configuration to `~/.config/runon/config.kdl`.
 
 ### Features

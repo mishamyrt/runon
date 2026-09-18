@@ -1,13 +1,14 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $(uname -s) != Darwin || $(uname -m) != arm64 ]]; then
-    echo 'RunOn requires Apple Silicon and macOS 26 or newer.' >&2
-    exit 1
-fi
+case "$(uname -s)/$(uname -m)" in
+    Darwin/arm64) arch=arm64 ;;
+    Darwin/x86_64) arch=x86_64 ;;
+    *) echo 'RunOn requires macOS 15 or newer on Apple Silicon or Intel.' >&2; exit 1 ;;
+esac
 os_version=$(sw_vers -productVersion)
-if (( ${os_version%%.*} < 26 )); then
-    echo 'RunOn requires macOS 26 or newer.' >&2
+if (( ${os_version%%.*} < 15 )); then
+    echo 'RunOn requires macOS 15 or newer.' >&2
     exit 1
 fi
 
@@ -26,12 +27,14 @@ install_dir="$HOME/.local/bin"
 staged_binary="$install_dir/.runon-install-$$"
 trap 'rm -rf "$install_tmp"; rm -f "$staged_binary"' EXIT
 
-curl --fail --silent --show-error --location "$url/runon-macos-arm64.tar.gz" -o "$install_tmp/runon-macos-arm64.tar.gz"
+archive="runon-macos-$arch.tar.gz"
+curl --fail --silent --show-error --location "$url/$archive" -o "$install_tmp/$archive"
 curl --fail --silent --show-error --location "$url/SHA256SUMS" -o "$install_tmp/SHA256SUMS"
 (
     cd "$install_tmp"
-    shasum -a 256 -c SHA256SUMS
-    tar -xzf runon-macos-arm64.tar.gz
+    awk -v archive="$archive" '$2 == archive { print }' SHA256SUMS > SHA256SUMS.selected
+    shasum -a 256 -c SHA256SUMS.selected
+    tar -xzf "$archive"
 )
 mkdir -p "$install_dir"
 install -m 755 "$install_tmp/runon" "$staged_binary"
