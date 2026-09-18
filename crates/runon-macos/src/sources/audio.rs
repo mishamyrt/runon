@@ -66,6 +66,7 @@ fn address(selector: u32) -> AudioObjectPropertyAddress {
 
 pub(super) fn snapshot() -> Result<BTreeMap<String, Event>, String> {
     let mut addr = address(kAudioHardwarePropertyDevices);
+    let mut last_error = String::new();
     // Device lists can change between the size query and data query; bounded retry.
     for _ in 0..3 {
         let mut size = 0u32;
@@ -99,6 +100,7 @@ pub(super) fn snapshot() -> Result<BTreeMap<String, Event>, String> {
             )
         };
         if code != 0 {
+            last_error = format!("device list: OSStatus {code}");
             continue;
         }
         ids.truncate(size as usize / 4);
@@ -117,7 +119,8 @@ pub(super) fn snapshot() -> Result<BTreeMap<String, Event>, String> {
                             .text("name", name),
                     );
                 }
-                _ => {
+                (Err(error), _) | (_, Err(error)) => {
+                    last_error = error;
                     complete = false;
                     break;
                 }
@@ -127,7 +130,9 @@ pub(super) fn snapshot() -> Result<BTreeMap<String, Event>, String> {
             return Ok(result);
         }
     }
-    Err("audio devices changed during enumeration; keeping previous snapshot".into())
+    Err(format!(
+        "audio device enumeration failed after retries: {last_error}"
+    ))
 }
 
 fn audio_string(id: u32, selector: u32) -> Result<String, String> {
