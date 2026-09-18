@@ -87,13 +87,14 @@ KDL 2 supports bare string values such as `desk`, quoted Unicode strings, commen
 | Node | Meaning | Default |
 | --- | --- | --- |
 | `max-parallel 4` | Maximum number of executing groups; positive integer | `4` |
+| `shell-path "/bin/zsh"` | Shell executable; at the top level or inside a group | `/bin/sh`; groups inherit the global setting |
 | `group NAME { … }` | Named group; names must be unique and nonempty | — |
 | `debounce "500ms"` | Quiet period after the latest matching event; inside a group or an action without `group` | `0ms` |
 | `action NAME group=NAME { … }` | Named action, optionally assigned to a declared group | Private group |
 | `on EVENT filter=value` | Event selector; at least one per action | — |
 | `timeout "30s"` | Deadline for the entire action, including every step | `30s` |
 | `exec "program" "argument"` | Execute a program with literal string arguments | — |
-| `shell "script"` | Execute one string through `/bin/sh -c` | — |
+| `shell "script"` | Execute one string through the selected shell with `-c` | — |
 
 An action needs a unique, nonempty name, at least one selector and at least one step. Group declarations may follow actions that reference them. Durations are unsigned integer strings ending in `ms`, `s` or `m`; timeout must be positive, debounce can be zero. Out-of-range durations are rejected.
 
@@ -141,7 +142,22 @@ Steps run sequentially. Failure or timeout skips the rest of that action, then c
 
 ### Commands and output
 
-`exec` never invokes a shell. `$HOME`, `~`, globs and pipes remain literal arguments. Use `shell` for shell expansion or pipelines. Shell behavior is `/bin/sh -c`; for failure to stop a multiline shell script, include `set -e` or use separate steps. Shell profiles are not loaded.
+`exec` never invokes a shell. `$HOME`, `~`, globs and pipes remain literal arguments. Use `shell` for shell expansion or pipelines. Shell steps run as `SHELL -c SCRIPT`, using `/bin/sh` by default. With sh-compatible shells, include `set -e` to stop a multiline script on failure, or use separate steps.
+
+Set `shell-path` globally to choose another shell. A group's `shell-path` overrides the global setting for all its actions; other groups and actions without a group inherit the global setting. Declaration order does not matter. The value is one nonempty executable path or name, without additional arguments, and the executable must support `-c`. RunOn does not request login or interactive mode; startup files follow the selected shell's rules.
+
+```kdl
+shell-path "/bin/zsh"
+
+group setup {
+    shell-path "/bin/bash"
+}
+
+action after-wake group=setup {
+    on system.wake
+    shell "setup_audio && setup_keyboard"
+}
+```
 
 Commands run in the user's home directory, with inherited environment variables and this explicit PATH in both foreground and service mode:
 

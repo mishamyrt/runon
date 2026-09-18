@@ -44,7 +44,9 @@ fn main() {
     let text = format!(
         r##"
         max-parallel 4
+        shell-path "/bin/bash"
         action fast {{ on app.activated bundle-id=fast; exec "/usr/bin/true"; }}
+        action custom-shell {{ on app.activated bundle-id=custom-shell; shell "test \"$0\" = /bin/bash"; }}
         action absent {{ on app.activated bundle-id=absent; exec "/does/not/exist"; }}
         action literal {{
             on app.activated bundle-id=literal
@@ -62,9 +64,9 @@ fn main() {
             shell #"trap '' TERM; sleep 30 & echo $! > '{}'; wait"#
         }}
         action stop {{ on app.activated bundle-id=stop; exec "/bin/sleep" "30"; }}
-        group order {{}}
+        group order {{ shell-path "/bin/sh"; }}
         action first group=order {{ on app.activated bundle-id=batch; shell "exit 1"; }}
-        action second group=order {{ on app.activated bundle-id=batch; exec "/usr/bin/true"; }}
+        action second group=order {{ on app.activated bundle-id=batch; shell "test \"$0\" = /bin/sh"; exec "/usr/bin/true"; }}
     "##,
         escaped.display(),
         forbidden.display(),
@@ -75,6 +77,8 @@ fn main() {
         tx.send(r).unwrap();
     })
     .unwrap();
+    send(&runtime, "custom-shell");
+    assert!(finished(&rx).1);
     for _ in 0..100 {
         send(&runtime, "fast");
         let (name, success, ..) = finished(&rx);
@@ -144,7 +148,7 @@ fn main() {
     drop(runtime);
     fs::remove_dir_all(dir).unwrap();
     println!(
-        "runtime: 100 fast exits, literal argv, sequential failure, bounded output, batch ordering, timeout, process-group cleanup and shutdown passed"
+        "runtime: custom shells, 100 fast exits, literal argv, sequential failure, bounded output, batch ordering, timeout, process-group cleanup and shutdown passed"
     );
 }
 

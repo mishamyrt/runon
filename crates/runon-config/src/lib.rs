@@ -220,8 +220,16 @@ impl Config {
         };
         let mut named_groups = BTreeMap::new();
         let mut parallel_seen = false;
+        let mut default_shell_path = None;
         for node in doc.nodes() {
             match node.name().value() {
+                "shell-path" => {
+                    if default_shell_path.is_some() {
+                        return Err(r.node_error(node, "duplicate shell-path"));
+                    }
+                    r.leaf(node)?;
+                    default_shell_path = Some(r.name(r.one(node, &[])?)?);
+                }
                 "max-parallel" => {
                     r.leaf(node)?;
                     if parallel_seen {
@@ -244,16 +252,30 @@ impl Config {
                         return Err(r.node_error(node, format!("duplicate group '{name}'")));
                     }
                     let mut debounce = None;
+                    let mut shell_path = None;
                     for item in r.children(node)?.nodes() {
-                        if item.name().value() != "debounce" {
-                            return Err(r.node_error(item, "expected debounce"));
+                        match item.name().value() {
+                            "debounce" => {
+                                if debounce.is_some() {
+                                    return Err(r.node_error(item, "duplicate debounce"));
+                                }
+                                debounce = Some(r.duration(item, true)?);
+                            }
+                            "shell-path" => {
+                                if shell_path.is_some() {
+                                    return Err(r.node_error(item, "duplicate shell-path"));
+                                }
+                                r.leaf(item)?;
+                                shell_path = Some(r.name(r.one(item, &[])?)?);
+                            }
+                            other => {
+                                return Err(
+                                    r.node_error(item, format!("unknown group node '{other}'"))
+                                );
+                            }
                         }
-                        if debounce.is_some() {
-                            return Err(r.node_error(item, "duplicate debounce"));
-                        }
-                        debounce = Some(r.duration(item, true)?);
                     }
-                    named_groups.insert(name, result.groups.len());
+                    named_groups.insert(name, (result.groups.len(), shell_path));
                     result.groups.push(Group {
                         debounce: debounce.unwrap_or_default(),
                     });
@@ -268,7 +290,7 @@ impl Config {
             if !names.insert(name.clone()) {
                 return Err(r.node_error(node, format!("duplicate action '{name}'")));
             }
-            let group = if let Some(e) = node.entry("group") {
+            let (group, shell_path) = if let Some(e) = node.entry("group") {
                 let name = r.name(e)?;
                 *named_groups
                     .get(name)
@@ -278,8 +300,9 @@ impl Config {
                 result.groups.push(Group {
                     debounce: Duration::ZERO,
                 });
-                id
+                (id, None)
             };
+            let shell_path = shell_path.or(default_shell_path).unwrap_or("/bin/sh");
             let mut action = Action {
                 name,
                 selectors: Vec::new(),
@@ -328,7 +351,7 @@ impl Config {
                     "shell" => {
                         r.leaf(item)?;
                         action.steps.push(vec![
-                            "/bin/sh".into(),
+                            shell_path.into(),
                             "-c".into(),
                             r.text(r.one(item, &[])?)?.into(),
                         ]);
@@ -420,12 +443,67 @@ mod tests {
     }
 
     #[test]
+    fn shell_inheritance_and_forward_declarations() {
+        for (setting, inherited) in [("", "/bin/sh"), ("shell-path \"/bin/bash\"", "/bin/bash")] {
+            let c = Config::parse(&format!(
+                r#"
+                action a {{ on system.wake; shell "echo inherited"; }}
+                action b group=shared {{ on system.wake; shell "echo inherited"; }}
+                action c group=custom {{
+                    on system.wake
+                    shell "echo custom"
+                    exec "/bin/sh" "-c" "echo explicit"
+                    shell "echo again"
+                }}
+                group shared {{}}
+                group custom {{ debounce "500ms"; shell-path "/bin/zsh"; }}
+                {setting}
+                "#,
+            ))
+            .unwrap();
+            for action in &c.actions[..2] {
+                assert_eq!(action.steps[0], [inherited, "-c", "echo inherited"]);
+            }
+            assert_eq!(c.actions[2].steps[0], ["/bin/zsh", "-c", "echo custom"]);
+            assert_eq!(c.actions[2].steps[1], ["/bin/sh", "-c", "echo explicit"]);
+            assert_eq!(c.actions[2].steps[2], ["/bin/zsh", "-c", "echo again"]);
+            assert_eq!(
+                c.groups[c.actions[2].group].debounce,
+                Duration::from_millis(500)
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_shell_settings() {
+        for setting in [
+            "shell-path",
+            "shell-path \"\"",
+            "shell-path \"   \"",
+            "shell-path 12",
+            "shell-path #null",
+            "shell-path \"/bin/sh\" \"-l\"",
+            "shell-path \"/bin/sh\" args=\"-l\"",
+            "shell-path \"/bin/sh\" {}",
+            "shell-path (string)\"/bin/sh\"",
+            "shell-path \"/bin/sh\"\nshell-path \"/bin/zsh\"",
+            "shell \"/bin/sh\"",
+        ] {
+            for text in [setting.to_owned(), format!("group g {{\n{setting}\n}}\n")] {
+                let error = Config::parse(&text).unwrap_err();
+                assert!(error.line > 0 && error.column > 0, "{text}");
+            }
+        }
+    }
+
+    #[test]
     fn rejects_invalid_schema_with_locations() {
         let bad = [
             "unknown 1",
             "max-parallel 0",
             "max-parallel 1\nmax-parallel 2",
             "action a {}",
+            "action a { on system.wake; shell-path \"/bin/zsh\"; shell \"echo hi\"; }",
             "group g {}\ngroup g {}",
             "action a group=missing { on system.wake; exec p; }",
             "action a { on system.sleep; exec p; }",
