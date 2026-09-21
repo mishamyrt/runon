@@ -4,116 +4,72 @@
 
 [![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
 
-RunOn runs commands when your Mac's displays, audio devices, applications, lock state or power source change.
+RunOn runs commands when your Mac's displays, audio devices, applications, lock state or power source change, or when it wakes from sleep.
 
 ## Install
 
-From a published 2.x release:
+Requires macOS 15 or newer on Apple Silicon or Intel. Install a published release:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/mishamyrt/runon/main/scripts/install.sh | bash
 ```
 
-The installer selects the archive for your Mac's architecture, checks its SHA-256 and places `runon` in `~/.local/bin`. Add that directory to your interactive PATH. Installation does not start the service. For a particular release, download the installer and pass a tag such as `v2.0.0`.
+The installer verifies the archive's SHA-256 and places `runon` in `~/.local/bin`. Add `export PATH="$HOME/.local/bin:$PATH"` to your shell configuration, then open a new terminal. Installation does not start the service.
 
-To build this checkout, install Rust with rustup and the Xcode Command Line Tools, then:
-
-```sh
-make install
-```
-
-Cargo uses the pinned toolchain in `rust-toolchain.toml`. No `sudo` is needed. Version 2.0.0 is prepared in this checkout; downloading it requires a published release.
+To update, rerun the installer, then `runon restart`. For source builds and development, see [CONTRIBUTING](https://github.com/mishamyrt/runon/blob/main/CONTRIBUTING.md).
 
 ## Quick start
 
-Create `$XDG_CONFIG_HOME/runon/config.kdl`, or `~/.config/runon/config.kdl` if `XDG_CONFIG_HOME` is unset:
+Create the configuration directory:
+
+```sh
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/runon"
+```
+
+Save this as `config.kdl` in that directory. This example speaks after your Mac wakes; replace the `exec` line with your own command:
 
 ```kdl
-max-parallel 4
-
-group desk {
-    debounce "500ms"
-}
-
-action desk-on group=desk {
-    on screen.connected name="Mi 27 NU"
-    timeout "5s"
-    exec "myrt_desk" "on"
-}
-
-action desk-off group=desk {
-    on screen.disconnected name="Mi 27 NU"
-    exec "myrt_desk" "off"
-}
-
 action after-wake {
     on system.wake
     debounce "500ms"
-    exec "setup_audio"
-}
-
-action battery-mode {
-    on power.changed source=battery
-    shell #"""
-        desk_lights off
-        lunar set 60
-        """#
+    exec "/usr/bin/say" "Welcome back"
 }
 ```
 
-Then validate and run:
+Validate and test in the foreground:
 
 ```sh
 runon check
-runon run      # foreground, Ctrl-C to stop
-runon start    # install and load the user LaunchAgent
+runon run
 ```
 
-Use `runon events` to discover event names and device identifiers. It observes all sources and prints selectors that can be pasted into an action:
+Stop with Ctrl-C, then run `runon start` to enable the background service and start it at login. After editing the config, use `runon restart` to apply changes.
 
-```kdl
-on screen.connected id=3 name="Mi 27 NU"
-on audio.connected name="USB Audio" uid="AppleUSBAudioEngine:example"
-on app.activated bundle-id="com.apple.TextEdit" name="TextEdit"
-on power.changed source="battery"
-```
+Run `runon events` and trigger a device or app change to discover selectors you can paste into an action. It observes events without running actions. More examples: [desk and power actions](examples/config.kdl), [editor actions](examples/editors.kdl).
 
-These are illustrative identifiers. Display IDs belong to the current session. Omit `id` when a rule should match a display by name across sessions.
+## Configuration
 
-## Configuration reference
+The default path is `~/.config/runon/config.kdl`, or `$XDG_CONFIG_HOME/runon/config.kdl` when `XDG_CONFIG_HOME` is nonempty (it must be absolute). Use `-c PATH` to select another file.
 
-KDL 2 supports bare string values such as `desk`, quoted Unicode strings, comments and multiline raw strings. Separate nodes with a newline or `;`. RunOn parses KDL once, validates it, builds typed rules and releases the parser document. Changes take effect on restart.
+Configuration uses **KDL 2**: separate nodes with a newline or `;`; quote strings containing spaces. Comments and multiline raw strings are supported. Old YAML configurations must be rewritten; changes require a restart.
 
-| Node | Meaning | Default |
+| Setting | Where | Meaning / default |
 | --- | --- | --- |
-| `max-parallel 4` | Maximum number of executing groups; positive integer | `4` |
-| `shell-path "/bin/zsh"` | Shell executable; at the top level or inside a group | `/bin/sh`; groups inherit the global setting |
-| `group NAME { … }` | Named group; names must be unique and nonempty | — |
-| `debounce "500ms"` | Quiet period after the latest matching event; inside a group or an action without `group` | `0ms` |
-| `action NAME group=NAME { … }` | Named action, optionally assigned to a declared group | Private group |
-| `on EVENT filter=value` | Event selector; at least one per action | — |
-| `timeout "30s"` | Deadline for the entire action, including every step | `30s` |
-| `exec "program" "argument"` | Execute a program with literal string arguments | — |
-| `shell "script"` | Execute one string through the selected shell with `-c` | — |
+| `max-parallel 4` | Top level | Maximum simultaneously running groups; positive integer, default `4` |
+| `shell-path "/bin/zsh"` | Top level or group | Executable for `shell` steps; default `/bin/sh`, with group settings overriding the global value |
+| `group NAME { … }` | Top level | Share execution order, debounce and shell settings between actions |
+| `action NAME group=NAME { … }` | Top level | Define an action; omit `group` for an independent group |
+| `on EVENT filter=value` | Action | Match an event; at least one `on` is required |
+| `debounce "500ms"` | Group or ungrouped action | Wait for this quiet period after the latest matching event; default `0ms` |
+| `timeout "30s"` | Action | Time limit for all steps together, starting when the action runs; default `30s` |
+| `exec "program" "argument"` | Action | Run a program with literal string arguments, without a shell |
+| `shell "script"` | Action | Run one script string through the selected shell with `-c` |
 
-An action needs a unique, nonempty name, at least one selector and at least one step. Group declarations may follow actions that reference them. Durations are unsigned integer strings ending in `ms`, `s` or `m`; timeout must be positive, debounce can be zero. Out-of-range durations are rejected.
+Every action needs a unique, nonempty name, at least one `on` and at least one `exec` or `shell` step. Group names must also be unique and nonempty; groups may be declared before or after their actions. An action with `group=NAME` must use that group's `debounce`, not declare its own.
 
-Set `debounce` directly inside an action to debounce it independently. Actions with `group=NAME` use the group's debounce; combining `group` with an action-level `debounce` is an error.
+Durations are unsigned integer strings ending in `ms`, `s` or `m`. Timeout must be positive; debounce may be zero. Unknown settings, invalid values, duplicate single-value settings and undeclared groups are errors. `runon check` reports the file, line and column without executing commands.
 
-Multiple `on` nodes are **OR**. Properties on one selector are **AND**. Values compare exactly, including case. A missing event field never satisfies a filter. A selector without properties matches any event of that kind. One event selects each matching action once, even when several of its selectors match.
-
-```kdl
-action editors {
-    on app.activated bundle-id="com.apple.TextEdit"
-    on app.activated bundle-id="com.microsoft.VSCode"
-    exec "setup_keyboard"
-    exec "setup_audio" "editing"
-}
-```
-
-Unknown nodes, events, properties, invalid types, duplicate singleton settings and undefined groups are errors reported with the config path, line and column. Type annotations are not part of the schema. KDL 1, YAML, variable interpolation, state conditions, plugins and live reload are not supported.
-
-### Events
+### Events and filters
 
 | Event | Optional filters |
 | --- | --- |
@@ -124,105 +80,67 @@ Unknown nodes, events, properties, invalid types, duplicate singleton settings a
 | `system.wake` | None |
 | `power.changed` | `source`: `ac`, `battery`, `ups` |
 
-Display identity is the system display ID; audio identity is the device UID. Devices with identical names remain distinct. Disconnect events use the last saved metadata. Audio covers both input and output devices. Application fields are omitted when the OS does not provide them.
+Multiple `on` lines are **OR**; filters on one line are **AND**. Values match exactly, including case; missing fields do not match a filter. Without filters, any event of that kind matches. Each event selects a matching action only once.
 
-Application launch/termination follow NSWorkspace notifications: macOS excludes background applications and applications declaring `LSUIElement` from these notifications. See [Apple's delivery rules](https://developer.apple.com/documentation/appkit/nsworkspace/didlaunchapplicationnotification).
+For example, `on app.activated bundle-id="com.apple.TextEdit"` matches TextEdit, and `on power.changed source=battery` matches switching to battery power.
 
-Startup captures a baseline without generating connection or power events. Duplicate device/power notifications do not create duplicate changes. Wake notifications also refresh subscribed device and power snapshots, detecting changes missed while asleep. There is no sleep event.
+Display IDs can change between sessions; filter by `name` for a persistent rule. Use audio `uid` to distinguish devices with identical names. Audio events cover both input and output devices; disconnect events retain the last known metadata.
 
-Lock/unlock delivery uses the distributed notifications `com.apple.screenIsLocked` and `com.apple.screenIsUnlocked`. These names are undocumented by Apple; delivery must be checked on each supported OS version. See [validation status](docs/validation.md).
+Startup does not emit connection or power events for the current state. Wake refreshes device and power state to detect changes missed during sleep. There is no sleep event. App launch/termination excludes background and `LSUIElement` apps; lock/unlock relies on undocumented macOS notifications. See [event validation and limitations](docs/validation.md#hardware-acceptance-still-required).
 
-### Scheduling
+### Groups and debounce
 
-All matching actions in the same group form a batch in config order. A group runs one batch and holds at most one pending batch. Every subsequent matching event replaces that pending batch in full; it does not interrupt the current batch.
-
-Debounce starts again on the latest matching event. A pending batch becomes eligible after its debounce expires and the current batch finishes. Eligible groups run in readiness order, up to `max-parallel` at once. A zero-debounce replacement keeps an already-waiting group's position. Actions without an explicit group each get an independent group. Pending storage is bounded by the number of configured groups, even during an event flood.
-
-Steps run sequentially. Failure or timeout skips the rest of that action, then continues with the next action in its batch. It does not stop the daemon.
-
-### Commands and output
-
-`exec` never invokes a shell. `$HOME`, `~`, globs and pipes remain literal arguments. Use `shell` for shell expansion or pipelines. Shell steps run as `SHELL -c SCRIPT`, using `/bin/sh` by default. With sh-compatible shells, include `set -e` to stop a multiline script on failure, or use separate steps.
-
-Set `shell-path` globally to choose another shell. A group's `shell-path` overrides the global setting for all its actions; other groups and actions without a group inherit the global setting. Declaration order does not matter. The value is one nonempty executable path or name, without additional arguments, and the executable must support `-c`. RunOn does not request login or interactive mode; startup files follow the selected shell's rules.
+Actions without `group` run independently. Use a shared group for actions that must not overlap:
 
 ```kdl
-shell-path "/bin/zsh"
-
-group setup {
-    shell-path "/bin/bash"
+group desk {
+    debounce "500ms"
 }
 
-action after-wake group=setup {
-    on system.wake
-    shell "setup_audio && setup_keyboard"
+action display-connected group=desk {
+    on screen.connected name="My Display"
+    exec "/usr/bin/say" "Display connected"
+}
+
+action display-disconnected group=desk {
+    on screen.disconnected name="My Display"
+    exec "/usr/bin/say" "Display disconnected"
 }
 ```
 
-Commands run in the user's home directory, with inherited environment variables and this explicit PATH in both foreground and service mode:
+Within each group, an event forms a batch of matching actions in configuration order. A group runs one batch and keeps at most one pending batch. A new matching event replaces the pending batch in full and resets debounce; the running batch finishes unchanged. Ready groups run up to `max-parallel` at once.
+
+Steps run in order. Failure or timeout skips the rest of that action, then proceeds to the next action in the batch. Timeouts exclude time spent asleep. Commands must finish their work before exiting; background child processes are cleaned up after each step.
+
+### Shell and environment
+
+`exec` treats `$HOME`, `~`, globs and pipes literally. Use `shell` for expansion or pipelines, for example `shell "echo $HOME"`. With sh-compatible shells, use `set -e` to stop a multiline script on failure, or split it into separate steps.
+
+`shell-path` takes one executable path or name, without arguments. It must support `-c`; RunOn does not request an interactive or login shell.
+
+Commands run in your home directory with no standard input. They inherit the foreground terminal's environment or launchd's environment in service mode, but RunOn always sets this command search path:
 
 ```text
 /opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 ```
 
-Standard input is `/dev/null`. Both output streams are drained without blocking, retaining only the last 64 KiB of each stream of the current step. Failures log the exit status/reason and retained output; successful command output is discarded.
-
-Each step has its own process group. Timeout or daemon shutdown sends SIGTERM to the group, allows two seconds for cleanup, then sends SIGKILL before reaping the leader and releasing its slot. The grace period also covers descendants when the leader exits first. A normally completed step cleans up leftover descendants before the next step starts; commands should not leave background jobs running. Deadlines use monotonic awake time, excluding time spent asleep.
+Use absolute paths for programs outside these directories, including scripts in `~/.local/bin`. Successful command output is discarded; failures log the reason and the last 64 KiB of each output stream.
 
 ## CLI and service
 
-```text
-runon run [-c PATH]
-runon check [-c PATH]
-runon events
-runon start [-c PATH]
-runon stop
-runon restart [-c PATH]
-runon status
-runon logs
-```
+| Command | Purpose |
+| --- | --- |
+| `runon check [-c PATH]` | Validate configuration without running actions |
+| `runon run [-c PATH]` | Run in the foreground; Ctrl-C to stop |
+| `runon events` | Print observed events as KDL selectors; Ctrl-C to stop |
+| `runon start [-c PATH]` | Validate, install and start the user LaunchAgent |
+| `runon restart [-c PATH]` | Validate and restart with the new configuration |
+| `runon stop` | Stop the service, retaining its settings |
+| `runon status` | Show service status; also the default without a command |
+| `runon logs` | Follow service diagnostics in macOS Unified Logging |
 
-Without a subcommand, RunOn prints service status. `--config` is an alias for `-c`. `--help` and `--version` are also available. `check` only reads and validates the configuration.
+`--config` is an alias for `-c`; `--help` and `--version` are also available.
 
-`start` validates the config, writes `~/Library/LaunchAgents/co.myrt.runon.plist` with absolute binary/config paths, and loads it in the current user's GUI session. Starting an already loaded service leaves its settings and process unchanged. The LaunchAgent starts at login and launchd restarts it after an unsuccessful exit, with a ten-second throttle. Keep the installed binary at its configured path.
+The service runs in your logged-in GUI session. `start` leaves an already loaded service unchanged. Both `start` and `restart` reuse the saved config path unless `-c` is given; an invalid config does not stop a running service. Foreground diagnostics go to stderr; service diagnostics use the `co.myrt.runon` logging subsystem.
 
-`restart` validates and prepares the new config before unloading the current service. Without `-c`, it preserves the config path stored in the installed LaunchAgent. An invalid config does not stop the running daemon. `stop` unloads the agent and retains its settings; `start` can load them again. `status` never modifies files or launchd state. Remove the saved plist after stopping if you also want to remove login startup.
-
-Foreground diagnostics go to stderr. Service diagnostics use Unified Logging with subsystem `co.myrt.runon`; `logs` opens `/usr/bin/log stream` filtered to that subsystem. Commands inherit the foreground shell's environment when run interactively and launchd's environment as a service, with the same explicit HOME working directory and PATH policy.
-
-Diagnostic writes run on a separate thread with a queue of 16 records. If the log destination stalls and the queue fills, new records are dropped; a warning reports the count when writing resumes. Process timeouts and shutdown continue independently. On exit, RunOn waits at most 100 ms for queued diagnostics; remaining records may be lost.
-
-To update an installed binary, rerun the installer or `make install`, then `runon restart`. RunOn 2 does not migrate old YAML files; create and validate a KDL configuration first.
-
-## Development and release
-
-```sh
-make check          # fmt, Clippy with -D warnings, tests
-make build-release  # release binary, ARM64 archive, SHA256SUMS, release notes
-make measure        # five-minute idle measurement + latency/event-flood benchmark
-```
-
-The Cargo workspace has five crates. Shared dependency versions, package metadata, lint policy and the release profile live in the root `Cargo.toml`; every crate opts into the workspace lints, and all crates share one `Cargo.lock` and `target/` directory.
-
-| Crate | Responsibility | Internal dependencies |
-| --- | --- | --- |
-| [`runon-core`](crates/runon-core) | Typed events and clock-controlled scheduling rules; no platform APIs or unsafe code | None |
-| [`runon-config`](crates/runon-config) | Configuration structures, KDL loading, parsing, validation and event-selector formatting | `runon-core` |
-| [`runon-macos`](crates/runon-macos) | Native event subscriptions, Dispatch/RunLoop/signal ownership, system paths and LaunchAgent integration | `runon-config`, `runon-core` |
-| [`runon-runtime`](crates/runon-runtime) | Event matching, action execution, process groups, output capture, deadlines and the serial scheduler queue | `runon-config`, `runon-core`, `runon-macos` |
-| [`runon`](crates/runon) | Binary entry point, CLI commands, logging and wiring the components together | All four libraries |
-
-The libraries never depend on the CLI. Native sources emit typed events through a callback and do not depend on the runtime. Process supervision stays private to `runon-runtime`; its public entry points are `Runtime` and `Report`. The scheduler receives the parallelism limit and group debounce durations without depending on the configuration parser; `runon-core` has no external dependencies. `runon-config` reads an explicitly supplied path and formats observed events with `format_selector`; `runon-macos::paths` owns home/config path discovery and the command search path. The core and configuration crates can be built and tested independently of macOS with `cargo test --locked -p runon-core -p runon-config`.
-
-The main thread runs AppKit's event loop. `Runtime::submit` matches events and updates the bounded scheduler under a short mutex; the scheduler alone owns pending replacement and readiness order. A serial DispatchQueue selects ready groups and drives process lifecycle through native data, process, pipe, timer and signal sources. Report callbacks run on that queue outside state locks and must be nonblocking; the CLI sends diagnostic writes to its log worker. There is no async runtime, periodic process check or idle timer. Only configured event sources are subscribed, plus wake notifications required for refreshing device/power snapshots.
-
-`cargo test --workspace` covers parsing, matching, scheduling, subprocess behavior and CLI behavior. Tests and executable examples live with their owning crates; user-facing KDL examples remain in the root `examples/` directory. The LaunchAgent integration test lives in `runon` because it exercises the assembled binary. It is explicit because it requires a GUI session and installs a temporary agent with a unique label:
-
-```sh
-cargo test --locked -p runon --test service -- --ignored --nocapture
-cargo run --locked -p runon-macos --example native_smoke
-```
-
-Hardware event delivery needs a real logged-in Mac. [Validation and measurements](docs/validation.md) describe the reproducible checks, measured results and outstanding hardware checks.
-
-Release builds use size optimization, LTO, one codegen unit, symbol stripping and abort-on-panic, with a macOS 15.0 deployment target. Cargo.lock and the Rust toolchain are pinned. CI runs checks and packages on macOS 15 for both ARM64 and Intel, plus macOS 26 ARM64. Releases build natively on macOS 15 for each architecture. A pushed `v*` tag must match Cargo's version and publishes `runon-macos-arm64.tar.gz`, `runon-macos-x86_64.tar.gz` and a combined `SHA256SUMS`; manually running the workflow only builds artifacts. Local packaging builds the host architecture and does not publish a release.
+The LaunchAgent is saved at `~/Library/LaunchAgents/co.myrt.runon.plist` with absolute binary and config paths. Keep the binary at that path. It starts at login and restarts after an unsuccessful exit. To remove login startup, run `runon stop`, then remove the plist.
