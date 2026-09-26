@@ -204,7 +204,7 @@ dependencies = [
 
 [[package]]
 name = "runon"
-version = "2.0.0"
+version = "0.2.0"
 dependencies = [
  "dispatch2",
  "lexopt",
@@ -220,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "runon-config"
-version = "2.0.0"
+version = "0.2.0"
 dependencies = [
  "kdl",
  "runon-core",
@@ -228,11 +228,11 @@ dependencies = [
 
 [[package]]
 name = "runon-core"
-version = "2.0.0"
+version = "0.2.0"
 
 [[package]]
 name = "runon-macos"
-version = "2.0.0"
+version = "0.2.0"
 dependencies = [
  "block2",
  "dispatch2",
@@ -250,7 +250,7 @@ dependencies = [
 
 [[package]]
 name = "runon-runtime"
-version = "2.0.0"
+version = "0.2.0"
 dependencies = [
  "dispatch2",
  "libc",

@@ -2,161 +2,187 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog][],
-and this project adheres to [Semantic Versioning][].
+## [0.2.0](https://github.com/mishamyrt/runon/compare/v1.0.6..v0.2.0) - 2026-09-26
 
+### 🚀 Features
 
-## [v2.0.0]
+- Add screen locked/unlocked events
+- Use app localized name as bundleID fallback
+- Add more fallback
+- Major rewrite, new file format
+- Add per-action debounce
+- Add custom shell path support
+- Improve audio error logging
 
-### Breaking changes
+### 🐛 Bug Fixes
 
-- Replace the Swift implementation and YAML configuration with a Rust daemon and KDL 2.
-- Require macOS 15 or newer on Apple Silicon or Intel.
-- Install the binary in `~/.local/bin`; write configuration to `~/.config/runon/config.kdl`.
+- Correctly handle displays
+- Rework blocking logging
 
-### Features
+### 🚜 Refactor
 
-- Named actions, typed event filters, literal executable arguments and shell steps.
-- Bounded latest-event scheduling, group debounce, action deadlines and process-group cleanup.
-- Native display, audio, application, lock/unlock, wake and power-source notifications.
-- Config validation, event inspection, safe restart validation and Unified Logging.
-- Release-size checks, runtime integration tests and reproducible resource measurements.
+- Simplify
+- Move config to crate
+- Improve logging
+- Split sources
 
-## [v1.0.6](https://github.com/mishamyrt/runon/releases/tag/v1.0.6) - 2024-07-16
-### Bug Fixes
-- correctly write colored log to file
-- adapt installation script to new structure
+### 📚 Documentation
 
-### Features
-- move all daemon logic to swift
-- sync outputs between logger entities
+- Add new logo
+- Split contributing from readme
+- Update license year
 
-### Refactoring
-- rename logger module to log
-- improve command splitting
-- allow configuring keep alive
+## [1.0.6](https://github.com/mishamyrt/runon/compare/v1.0.5..v1.0.6) - 2024-07-16
 
+### 🚀 Features
 
-## [v1.0.5](https://github.com/mishamyrt/runon/releases/tag/v1.0.5) - 2024-07-14
-### Bug Fixes
-- sync sub-loggers level
-- display correct command name in help
+- Sync outputs between logger entities
+- Move all daemon logic to swift
 
-### Features
-- improve logging
-- add subloggers support
+### 🐛 Bug Fixes
 
-### Performance Improvements
-- avoid interval parsing if nil
+- Adapt installation script to new structure
+- Correctly write colored log to file
 
-### Refactoring
-- use semaphore for queues
-- move config sources to dir
-- move action array extension to utils
-- improve config actions parsing
-- improve entrypoint
+### 🚜 Refactor
 
-### Testing
-- correctly trim content
-- improve stream implementation
+- Allow configuring keep alive
+- Improve command splitting
+- Rename logger module to log
 
+## [1.0.5](https://github.com/mishamyrt/runon/compare/v1.0.4..v1.0.5) - 2024-07-14
 
-## [v1.0.4](https://github.com/mishamyrt/runon/releases/tag/v1.0.4) - 2024-07-13
-### Features
-- set log level from arguments
-- dim log timestamp
+### 🚀 Features
 
-### Refactoring
-- clean up action runner
-- isolate logger
-- split config and handling
+- Add subloggers support
+- Improve logging
 
-### Testing
-- add logger tests
+### 🐛 Bug Fixes
 
+- Display correct command name in help
+- Sync sub-loggers level
 
-## [v1.0.3](https://github.com/mishamyrt/runon/releases/tag/v1.0.3) - 2024-07-12
-### Bug Fixes
-- update changelog before release commit
+### 🚜 Refactor
 
-### Features
-- add installation script
+- Improve entrypoint
+- Improve config actions parsing
+- Move action array extension to utils
+- Move config sources to dir
+- Use semaphore for queues
 
+### 📚 Documentation
 
-## [v1.0.2](https://github.com/mishamyrt/runon/releases/tag/v1.0.2) - 2024-07-12
-### Bug Fixes
-- remove xtra deps
+- Add installation description
 
+### ⚡ Performance
 
-## [v1.0.1](https://github.com/mishamyrt/runon/releases/tag/v1.0.1) - 2024-07-12
+- Avoid interval parsing if nil
 
-## [v1.0.0](https://github.com/mishamyrt/runon/releases/tag/v1.0.0) - 2024-07-12
-### Bug Fixes
-- improve target handler search
-- improve errors
-- improve desk example
-- improve logging
-- reduce wake ups
-- remove useless logger import
-- remove extra logging
-- avoid process deadlock
+## [1.0.4](https://github.com/mishamyrt/runon/compare/v1.0.3..v1.0.4) - 2024-07-13
 
-### CI
-- use macos-latest
-- use 5.10.1
-- update swift version
-- run tests on qa workflow
-- add qa workflow
+### 🚀 Features
 
-### Features
-- add build-time variables
-- add multiple handlers support
-- add debounce group handling
-- improve handler logging
-- pass arguments to start
-- add multiline script support
-- improve argument passing
-- add shell timeout support
-- improve logging
-- add status command
-- add config related commands
-- add `print` command
-- add app event source
-- add autostart control
-- improve running state detection
-- add audio devices event source
-- use bash script for daemonizing
+- Dim log timestamp
+- Set log level from arguments
 
-### Refactoring
-- rework info generation
-- remove constant type
-- improve code splitting
-- update path constants naming
-- migrate shell commands to Shellac library
-- transform process to class
-- move single files to root
-- rework script
-- rework login item
-- static logger
-- improve config handling
-- simplify screen source logic
-- fully rename project
-- fix code style problems
-- rename project
-- rename `Commands` to `Runner`
-- simplify code structure
+### 🚜 Refactor
 
-### Testing
-- add more config cases
-- add extensions tests
-- add timeout config example
+- Split config and handling
+- Isolate logger
+- Clean up action runner
 
-[keep a changelog]: https://keepachangelog.com/en/1.0.0/
-[semantic versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/mishamyrt/runon/compare/v1.0.6...HEAD
-[v1.0.6]: https://github.com/mishamyrt/runon/compare/v1.0.5...v1.0.6
-[v1.0.5]: https://github.com/mishamyrt/runon/compare/v1.0.4...v1.0.5
-[v1.0.4]: https://github.com/mishamyrt/runon/compare/v1.0.3...v1.0.4
-[v1.0.3]: https://github.com/mishamyrt/runon/compare/v1.0.2...v1.0.3
-[v1.0.2]: https://github.com/mishamyrt/runon/compare/v1.0.1...v1.0.2
-[v1.0.1]: https://github.com/mishamyrt/runon/compare/v1.0.0...v1.0.1
+### 📚 Documentation
+
+- Add license
+- Add version badge
+
+## [1.0.3](https://github.com/mishamyrt/runon/compare/v1.0.2..v1.0.3) - 2024-07-12
+
+### 🚀 Features
+
+- Add installation script
+
+### 🐛 Bug Fixes
+
+- Update changelog before release commit
+
+### 📚 Documentation
+
+- Add script installation command
+- Fix spaces
+
+## [1.0.2](https://github.com/mishamyrt/runon/compare/v1.0.1..v1.0.2) - 2024-07-12
+
+### 🐛 Bug Fixes
+
+- Remove xtra deps
+
+## [1.0.0](https://github.com/mishamyrt/runon/compare/..v1.0.0) - 2024-07-12
+
+### 🚀 Features
+
+- Use bash script for daemonizing
+- Add audio devices event source
+- Improve running state detection
+- Add autostart control
+- Add app event source
+- Add `print` command
+- Add config related commands
+- Add status command
+- Improve logging
+- Add shell timeout support
+- Improve argument passing
+- Add multiline script support
+- Pass arguments to start
+- Improve handler logging
+- Add debounce group handling
+- Add multiple handlers support
+- Add build-time variables
+
+### 🐛 Bug Fixes
+
+- Avoid process deadlock
+- Remove extra logging
+- Remove useless logger import
+- Reduce wake ups
+- Improve logging
+- Improve desk example
+- Improve errors
+- Improve target handler search
+
+### 🚜 Refactor
+
+- Simplify code structure
+- Rename `Commands` to `Runner`
+- Rename project
+- Fix code style problems
+- Fully rename project
+- Simplify screen source logic
+- Improve config handling
+- Static logger
+- Rework login item
+- Rework script
+- Move single files to root
+- Transform process to class
+- Migrate shell commands to Shellac library
+- Update path constants naming
+- Improve code splitting
+- Remove constant type
+- Rework info generation
+
+### 📚 Documentation
+
+- Improve description
+- Update logo
+- Add qa badge
+- Clarify format
+- Clarify `with`less notation
+- Rename sources
+- Improve
+- Clarify setup
+- Remove extra comment
+- Clarify groups
+- Bump
+- Improve logo alt
+
+<!-- generated by git-cliff -->
