@@ -14,6 +14,7 @@ edition = "2024"
 rust-version = "1.98"
 license = "MIT"
 repository = "https://github.com/mishamyrt/runon"
+homepage = "https://github.com/mishamyrt/runon"
 
 [workspace.dependencies]
 runon-config = { path = "crates/runon-config" }
