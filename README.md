@@ -1,8 +1,16 @@
+<h1 align="center">
+    <img src="./docs/logo.svg" width="200" alt="RunOn logo" /><br>
+    RunOn <br/>
+</h1>
 <p align="center">
-    <img src="./docs/logo.svg" width="200" alt="RunOn logo" />
+    Runs commands on macOS events<br/><br/>
+    <a href="https://github.com/mishamyrt/runon/actions/workflows/qa.yml">
+        <img src="https://github.com/mishamyrt/runon/actions/workflows/qa.yml/badge.svg" alt="Quality Assurance badge" />
+    </a>
+    <a href="https://github.com/mishamyrt/runon/releases/latest">
+        <img src="https://img.shields.io/github/v/tag/mishamyrt/runon?label=version" alt="Version badge" />
+    </a><br/><br/>
 </p>
-
-[![Quality Assurance](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml/badge.svg)](https://github.com/mishamyrt/runon/actions/workflows/qa.yaml)
 
 RunOn runs commands when your Mac's displays, audio devices, applications, lock state or power source change, or when it wakes from sleep.
 
