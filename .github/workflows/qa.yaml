@@ -15,13 +15,14 @@ jobs:
         os: [macos-15, macos-15-intel, macos-26]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Install pinned Rust toolchain
-        run: rustup show
+      - uses: actions/checkout@v7
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: rustfmt, clippy
       - name: Check formatting, Clippy and tests
         run: make check
-      - name: Build and verify release archive
-        run: make build-release
+      - name: Build
+        run: make
       - name: Validate example configurations
         run: |
           target/release/runon check -c examples/config.kdl

@@ -58,7 +58,7 @@ unused_peekable = "warn"
 
 [profile.release]
 opt-level = "s"
-lto = true
+lto = "fat"
 codegen-units = 1
 strip = true
 panic = "abort"
@@ -66,4 +66,3 @@ panic = "abort"
 # The profile that 'dist' will build with
 [profile.dist]
 inherits = "release"
-lto = "thin"
