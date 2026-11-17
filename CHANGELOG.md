@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0](https://github.com/mishamyrt/runon/compare/v0.2.0..v0.3.0) - 2026-11-17
+
+### 🚀 Features
+
+- Migrate to brew service
+
+### 📚 Documentation
+
+- Improve readme heading
+
 ## [0.2.0](https://github.com/mishamyrt/runon/compare/v1.0.6..v0.2.0) - 2026-09-26
 
 ### 🚀 Features
