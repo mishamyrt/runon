@@ -6,8 +6,7 @@ Implementation validation was performed on an Apple M3 Pro, macOS 27.0, ARM64, w
 
 ```sh
 make check
-make build-release
-cargo test --locked -p runon --test service -- --ignored --nocapture
+dist build
 cargo run --locked -p runon-macos --example native_smoke
 ```
 
@@ -17,11 +16,10 @@ cargo run --locked -p runon-macos --example native_smoke
 | Scheduler | Controlled monotonic clock, ordered batches, latest pending replacement, debounce reset, independent groups, concurrency limit, readiness FIFO, shutdown, bounded pending storage under thousands of replacements |
 | Runtime boundaries | Replacements before the first dispatch preserve FIFO and latest batch contents, with and without debounce; report callbacks can access the runtime queue; unread stderr and a flooded log queue preserve process timeouts and SIGTERM shutdown |
 | Processes | 100 rapid exits, spawn failure, literal argv, sequential failure, following batch actions, 2 MB per output stream with exact 64 KiB tails, timeout, SIGTERM/SIGKILL escalation, killed descendant, slot reuse, graceful daemon shutdown |
-| CLI/install | Config paths/defaults, invalid arguments, empty config staying asleep, SIGTERM shutdown; installer paths with spaces, archive selection for both architectures from a combined checksum manifest, rejection of mismatched/missing checksums preserving the previous binary, and rejection of unsupported systems before downloading |
-| LaunchAgent | Isolated start/status/restart/stop, idempotent start, retained config path, invalid restart preserving PID, recovery after SIGKILL, restart waiting for a slow SIGTERM handler, retained settings after stop |
+| CLI | Foreground startup without a subcommand, explicit config paths/defaults, help, rejection of removed commands and `--service`, empty config staying asleep and SIGTERM shutdown; `logs` follows the service file under a `HOMEBREW_PREFIX` containing spaces, including appended records and file replacement, and rejects a relative prefix |
 | Native sources | AppKit event queue processing; all subscriptions and initial snapshots on a real GUI session; no startup connection events, repeated screen notifications and wake refresh without false display changes; real NSWorkspace launch/termination of a temporary app |
 
-The native test opens its own short-lived app hidden and without activation. It posts screen/wake notifications only to notification centers inside its own process, then removes its app bundle. It does not simulate a physical wake or broadcast fake lock notifications. The LaunchAgent test uses its own temporary home, config files and unique label; it leaves the user's `co.myrt.runon` service alone.
+The native test opens its own short-lived app hidden and without activation. It posts screen/wake notifications only to notification centers inside its own process, then removes its app bundle. It does not simulate a physical wake or broadcast fake lock notifications. RunOn no longer installs or manages LaunchAgents. Homebrew start/status/restart/stop, crash recovery and login startup require a separate service smoke test in a disposable GUI account; passing CLI tests alone does not establish those behaviors.
 
 The AppKit queue regression check posts a process-local `NSEvent` and verifies that the main loop consumes it. It failed with the previous bare `CFRunLoop` and passes with `NSApplication.run`, which processes the WindowServer events needed for display-change notifications. Synthetic notification delivery alone did not detect this bug; physical monitor acceptance below is still required. Shutdown dispatches `stop` to the main queue and posts a wake event so SIGINT/SIGTERM can exit an idle AppKit loop. See Apple's [event loop](https://developer.apple.com/documentation/appkit/nsapplication/run%28%29) and [stop behavior](https://developer.apple.com/documentation/appkit/nsapplication/stop%28_%3A%29) documentation.
 
@@ -39,11 +37,10 @@ Use an otherwise quiet, logged-in Mac. Build first, finish other tests, then mea
 
 ```sh
 cargo build --release --locked -p runon
-python3 scripts/measure.py --service --seconds 300 --output /tmp/runon-idle.json
 cargo run --release --locked -p runon-runtime --example benchmark > /tmp/runon-engine.json
 ```
 
-`measure.py` creates a temporary config covering all 12 event kinds. Any real event can only run `/usr/bin/true`. It starts a separate daemon, excludes five seconds of initialization, then reads `proc_pid_rusage` once per second from the external Python sampler. The CPU percentage is the daemon's user+system CPU delta divided by elapsed time and refers to **one core**; sampler CPU and child command CPU are excluded. Physical footprint is the kernel's `ri_phys_footprint`, not RSS. Reported peak is the largest one-second sample, not an instantaneous high-water mark. `--service` uses the same Unified Logging path as launchd without installing a service. The script terminates and reaps its daemon and removes its config afterward. It records the measured binary's initial SHA-256, byte size, logging mode and host details.
+The historical idle measurements below used a separate Python sampler and the former Unified Logging backend. That sampler is not included in this checkout, and the `--service` flag has been removed. Those measurements do not establish performance of the current stderr/file backend. The sampler started a temporary configuration covering all 12 event kinds with `/usr/bin/true` actions, excluded five seconds of initialization, and read `proc_pid_rusage` once per second. CPU percentage measured RunOn's user+system CPU delta as a fraction of **one core**, excluding the sampler and child commands. Physical footprint used the kernel's `ri_phys_footprint`, not RSS; peak was the largest one-second sample.
 
 The engine benchmark takes 1,000 sequential `/usr/bin/true` samples after 20 warm-ups. Each sample is timed from acceptance into `Runtime::submit` to immediately before the first `Command::spawn` call, including rule matching and dispatch. Report delivery happens afterward, so the measurement excludes report callback timing. No group is busy and no debounce is configured. This measures launch initiation, not OS notification delivery or time until the new program executes its first instruction.
 

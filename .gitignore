@@ -3,3 +3,4 @@ target/
 dist/
 .netrc
 .vscode
+__pycache__/

@@ -19,19 +19,19 @@ RunOn runs commands when your Mac's displays, audio devices, applications, lock 
 Requires macOS 15 or newer on Apple Silicon or Intel. Install a published release:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/mishamyrt/runon/main/scripts/install.sh | bash
+brew install mishamyrt/tap/runon
 ```
 
-The installer verifies the archive's SHA-256 and places `runon` in `~/.local/bin`. Add `export PATH="$HOME/.local/bin:$PATH"` to your shell configuration, then open a new terminal. Installation does not start the service.
+Homebrew installs the release binary for your architecture and verifies its SHA-256. Installation does not start the service.
 
-To update, rerun the installer, then `runon restart`. For source builds and development, see [CONTRIBUTING](https://github.com/mishamyrt/runon/blob/main/CONTRIBUTING.md).
+To update, use `brew upgrade runon`, then `runon check && brew services restart runon`. For source builds and development, see [CONTRIBUTING](https://github.com/mishamyrt/runon/blob/main/CONTRIBUTING.md).
 
 ## Quick start
 
 Create the configuration directory:
 
 ```sh
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/runon"
+mkdir -p "$HOME/.config/runon"
 ```
 
 Save this as `config.kdl` in that directory. This example speaks after your Mac wakes; replace the `exec` line with your own command:
@@ -48,16 +48,18 @@ Validate and test in the foreground:
 
 ```sh
 runon check
-runon run
+runon
 ```
 
-Stop with Ctrl-C, then run `runon start` to enable the background service and start it at login. After editing the config, use `runon restart` to apply changes.
+Stop with Ctrl-C, then run `runon check && brew services start runon` to enable the background service and start it at login. After editing the config, use `runon check && brew services restart runon` to apply changes. Run these commands without `sudo`, in your logged-in macOS GUI session.
+
+If your terminal sets `XDG_CONFIG_HOME`, pass `-c "$HOME/.config/runon/config.kdl"` to both `runon` and `runon check` in these steps so they use the same configuration as the service.
 
 Run `runon events` and trigger a device or app change to discover selectors you can paste into an action. It observes events without running actions. More examples: [desk and power actions](examples/config.kdl), [editor actions](examples/editors.kdl).
 
 ## Configuration
 
-The default path is `~/.config/runon/config.kdl`, or `$XDG_CONFIG_HOME/runon/config.kdl` when `XDG_CONFIG_HOME` is nonempty (it must be absolute). Use `-c PATH` to select another file.
+The default path is `~/.config/runon/config.kdl`, or `$XDG_CONFIG_HOME/runon/config.kdl` when `XDG_CONFIG_HOME` is nonempty (it must be absolute). Use `runon -c PATH` or `runon check -c PATH` to select another file. The Homebrew service does not inherit your terminal's environment; use `~/.config/runon/config.kdl` for the service, or make that path a symlink to your configuration. Validate the same file before starting or restarting the service.
 
 Configuration uses **KDL 2**: separate nodes with a newline or `;`; quote strings containing spaces. Comments and multiline raw strings are supported. Old YAML configurations must be rewritten; changes require a restart.
 
@@ -138,17 +140,20 @@ Use absolute paths for programs outside these directories, including scripts in 
 
 | Command | Purpose |
 | --- | --- |
+| `runon [-c PATH]` | Run in the foreground; Ctrl-C to stop |
 | `runon check [-c PATH]` | Validate configuration without running actions |
-| `runon run [-c PATH]` | Run in the foreground; Ctrl-C to stop |
 | `runon events` | Print observed events as KDL selectors; Ctrl-C to stop |
-| `runon start [-c PATH]` | Validate, install and start the user LaunchAgent |
-| `runon restart [-c PATH]` | Validate and restart with the new configuration |
-| `runon stop` | Stop the service, retaining its settings |
-| `runon status` | Show service status; also the default without a command |
-| `runon logs` | Follow service diagnostics in macOS Unified Logging |
+| `runon logs` | Follow Homebrew's `var/log/runon.log` with `tail -F` |
+| `runon --help` | Show usage and options |
+| `brew services start runon` | Start the service and enable startup at login |
+| `brew services restart runon` | Restart the service to apply config or binary changes |
+| `brew services stop runon` | Stop the service and disable startup at login |
+| `brew services info runon` | Show service status |
 
 `--config` is an alias for `-c`; `--help` and `--version` are also available.
 
-The service runs in your logged-in GUI session. `start` leaves an already loaded service unchanged. Both `start` and `restart` reuse the saved config path unless `-c` is given; an invalid config does not stop a running service. Foreground diagnostics go to stderr; service diagnostics use the `co.myrt.runon` logging subsystem.
+The service runs in your logged-in GUI session. Homebrew manages the LaunchAgent, binary path and startup at login. It restarts RunOn after an unsuccessful exit. Homebrew does not validate KDL before restarting: use `runon check && brew services restart runon` so an invalid config does not stop a running service. If your terminal sets `XDG_CONFIG_HOME`, explicitly check the service file with `runon check -c "$HOME/.config/runon/config.kdl"` instead.
 
-The LaunchAgent is saved at `~/Library/LaunchAgents/co.myrt.runon.plist` with absolute binary and config paths. Keep the binary at that path. It starts at login and restarts after an unsuccessful exit. To remove login startup, run `runon stop`, then remove the plist.
+RunOn always writes diagnostics to stderr. The Homebrew service redirects stderr to its `var/log/runon.log`: `/opt/homebrew/var/log/runon.log` on Apple Silicon or `/usr/local/var/log/runon.log` on Intel. The file is created when the service starts. Use `runon logs` to follow it with `tail -F`; it uses `HOMEBREW_PREFIX` when set, otherwise the standard prefix for the binary's architecture. Foreground runs write to your terminal and do not append to this file.
+
+Log rotation is not configured. If you rotate or rename the log file, restart the service to reopen its output file.

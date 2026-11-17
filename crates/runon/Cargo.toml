@@ -15,7 +15,6 @@ runon-macos.workspace = true
 runon-runtime.workspace = true
 lexopt.workspace = true
 log.workspace = true
-oslog.workspace = true
 dispatch2.workspace = true
 objc2.workspace = true
 

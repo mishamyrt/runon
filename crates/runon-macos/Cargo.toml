@@ -8,7 +8,6 @@ repository.workspace = true
 description = "Native macOS event sources and system integration for RunOn"
 
 [dependencies]
-runon-config.workspace = true
 runon-core.workspace = true
 libc.workspace = true
 log.workspace = true
@@ -20,6 +19,9 @@ objc2-app-kit.workspace = true
 objc2-core-foundation.workspace = true
 objc2-core-audio.workspace = true
 objc2-io-kit.workspace = true
+
+[dev-dependencies]
+runon-config.workspace = true
 
 [lints]
 workspace = true

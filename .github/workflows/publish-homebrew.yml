@@ -1,0 +1,54 @@
+name: Publish Homebrew formula
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        required: true
+        type: string
+    secrets:
+      HOMEBREW_TAP_TOKEN:
+        required: true
+
+jobs:
+  publish:
+    if: ${{ !fromJson(inputs.plan).announcement_is_prerelease || fromJson(inputs.plan).publish_prereleases }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          path: source
+      - uses: actions/checkout@v6
+        with:
+          repository: mishamyrt/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+      - uses: actions/download-artifact@v8
+        with:
+          name: artifacts-build-global
+          path: artifacts
+      - name: Prepare and check formula
+        run: |
+          python3 source/scripts/prepare_homebrew.py artifacts/runon.rb
+          ruby -c artifacts/runon.rb
+          cp artifacts/runon.rb tap/Formula/runon.rb
+      - name: Format formula
+        working-directory: tap
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+          brew style --except-cops FormulaAudit/Homepage,FormulaAudit/Desc,FormulaAuditStrict --fix Formula/runon.rb
+      - name: Publish to tap
+        working-directory: tap
+        env:
+          VERSION: ${{ fromJson(inputs.plan).releases[0].app_version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/runon.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "runon ${VERSION}"
+            git push
+          fi

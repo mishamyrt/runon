@@ -14,7 +14,8 @@ tap = "mishamyrt/homebrew-tap"
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
 # Publish jobs to run in CI
-publish-jobs = ["homebrew"]
+publish-jobs = ["./publish-homebrew"]
+github-custom-job-permissions = { "publish-homebrew" = { contents = "read", actions = "read" } }
 # Path that installers should place binaries in
 install-path = "CARGO_HOME"
 # Whether to install an updater program

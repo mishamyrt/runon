@@ -16,7 +16,7 @@ use std::{
 mod logging;
 
 fn child(dir: &Path) {
-    logging::init(false).unwrap();
+    logging::init().unwrap();
     let config = Config::parse(
         r##"
         action noisy {
